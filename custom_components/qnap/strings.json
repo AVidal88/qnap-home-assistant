@@ -44,6 +44,11 @@
     }
   },
   "entity": {
+    "button": {
+      "wake": {
+        "name": "Wake on LAN"
+      }
+    },
     "sensor": {
       "cpu_temp": {
         "name": "CPU temperature"
@@ -89,6 +94,34 @@
       },
       "volume_size_used": {
         "name": "Used space ({monitor_device})"
+      }
+    }
+  },
+  "exceptions": {
+    "wake_failed": {
+      "message": "Unable to send Wake-on-LAN packets. Check the Home Assistant network configuration."
+    }
+  },
+  "options": {
+    "error": {
+      "invalid_broadcast_address": "Enter an IPv4 broadcast address.",
+      "invalid_broadcast_port": "Enter a port between 1 and 65535.",
+      "invalid_mac": "Enter a valid unicast MAC address for each physical network interface."
+    },
+    "step": {
+      "init": {
+        "data": {
+          "broadcast_address": "IPv4 broadcast address",
+          "broadcast_port": "Broadcast port",
+          "wol_macs": "Physical interface MAC addresses"
+        },
+        "data_description": {
+          "broadcast_address": "Use the broadcast address for the NAS subnet (for example, 192.168.1.255), or 255.255.255.255 for a local broadcast.",
+          "broadcast_port": "UDP destination port for the magic packets. The default is 9.",
+          "wol_macs": "Add the physical MAC address of each Wake-on-LAN capable interface. Clear the list to disable the button. Do not use a bond or virtual interface address."
+        },
+        "description": "Configure Wake-on-LAN packets. These settings can be changed while the NAS is offline.",
+        "title": "Wake on LAN"
       }
     }
   }

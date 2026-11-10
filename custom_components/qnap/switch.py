@@ -6,7 +6,7 @@ import logging
 from typing import Any
 
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -27,12 +27,25 @@ async def async_setup_entry(
     uid = config_entry.unique_id
     assert uid is not None
 
-    async_add_entities(
-        QNAPContainerSwitch(
-            coordinator, uid, container.name, container.id, container.type
+    added = False
+
+    @callback
+    def async_add_when_ready() -> None:
+        """Create entities only after receiving the first real NAS data."""
+        nonlocal added
+        if added or coordinator.data is None or not coordinator.last_update_success:
+            return
+        async_add_entities(
+            QNAPContainerSwitch(
+                coordinator, uid, container.name, container.id, container.type
+            )
+            for container in coordinator.data.containers
         )
-        for container in coordinator.data.containers
-    )
+        added = True
+
+    remove_listener = coordinator.async_add_listener(async_add_when_ready)
+    config_entry.async_on_unload(remove_listener)
+    async_add_when_ready()
 
 
 class QNAPContainerSwitch(CoordinatorEntity[QnapCoordinator], SwitchEntity):
@@ -96,12 +109,12 @@ class QNAPContainerSwitch(CoordinatorEntity[QnapCoordinator], SwitchEntity):
         """Start the container."""
         await self.coordinator._cs.start_container(
             self._container_id, self._container_type
-        )  # noqa: SLF001
+        )
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Stop the container."""
         await self.coordinator._cs.stop_container(
             self._container_id, self._container_type
-        )  # noqa: SLF001
+        )
         await self.coordinator.async_request_refresh()

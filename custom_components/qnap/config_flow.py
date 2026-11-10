@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 import logging
+import re
+from ipaddress import IPv4Address
 from typing import Any
 
-from qnap_client import QnapAuthError, QnapClient, QnapConnectionError, QnapTimeoutError
 import voluptuous as vol
-
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlowWithReload,
+)
 from homeassistant.const import (
+    CONF_BROADCAST_ADDRESS,
+    CONF_BROADCAST_PORT,
     CONF_HOST,
     CONF_PASSWORD,
     CONF_PORT,
@@ -17,9 +24,15 @@ from homeassistant.const import (
     CONF_USERNAME,
     CONF_VERIFY_SSL,
 )
+from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.selector import TextSelector, TextSelectorConfig
+from qnap_client import QnapAuthError, QnapClient, QnapConnectionError, QnapTimeoutError
 
 from .const import (
+    CONF_WOL_MACS,
+    DEFAULT_BROADCAST_ADDRESS,
+    DEFAULT_BROADCAST_PORT,
     DEFAULT_PORT,
     DEFAULT_SSL,
     DEFAULT_TIMEOUT,
@@ -41,10 +54,50 @@ DATA_SCHEMA = vol.Schema(
 _LOGGER = logging.getLogger(__name__)
 
 
+def normalize_mac_addresses(value: list[str]) -> list[str]:
+    """Validate physical unicast MAC addresses and remove duplicates."""
+    if not isinstance(value, list):
+        raise TypeError("MAC addresses must be a list")
+    normalized: list[str] = []
+    for mac in value:
+        if not isinstance(mac, str):
+            raise TypeError("Invalid MAC address")
+        mac = mac.strip()
+        if not re.fullmatch(
+            r"(?:[0-9a-f]{12}|[0-9a-f]{2}([:-])(?:[0-9a-f]{2}\1){4}[0-9a-f]{2})",
+            mac,
+            re.IGNORECASE,
+        ):
+            raise ValueError("Invalid MAC address")
+        octets = bytes.fromhex(mac.replace(":", "").replace("-", ""))
+        if not any(octets) or octets[0] & 1:
+            raise ValueError("A physical unicast MAC address is required")
+        canonical = ":".join(f"{octet:02x}" for octet in octets)
+        if canonical not in normalized:
+            normalized.append(canonical)
+    return normalized
+
+
+def normalize_broadcast_address(value: str) -> str:
+    """Validate an IPv4 destination without resolving a hostname."""
+    if not isinstance(value, str):
+        raise TypeError("An IPv4 broadcast destination is required")
+    address = IPv4Address(value.strip())
+    if address.is_unspecified or address.is_loopback or address.is_multicast:
+        raise ValueError("An IPv4 broadcast destination is required")
+    return str(address)
+
+
 class QnapConfigFlow(ConfigFlow, domain=DOMAIN):
     """Qnap configuration flow."""
 
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> QnapOptionsFlow:
+        """Return the options flow, which does not need a QTS connection."""
+        return QnapOptionsFlow()
 
     async def _async_validate_input(
         self, user_input: dict[str, Any]
@@ -69,8 +122,9 @@ class QnapConfigFlow(ConfigFlow, domain=DOMAIN):
             errors["base"] = "cannot_connect"
         except QnapTimeoutError:
             errors["base"] = "cannot_connect"
-        except Exception:
-            _LOGGER.exception("Unexpected error during QNAP setup validation")
+        except Exception:  # noqa: BLE001
+            # Exception details can contain QTS credentials or session identifiers.
+            _LOGGER.error("Unexpected error during QNAP setup validation")
             errors["base"] = "unknown"
         else:
             return errors, {"serial_number": info.serial_number, "name": info.name}
@@ -123,6 +177,64 @@ class QnapConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=self.add_suggested_values_to_schema(
                 DATA_SCHEMA,
                 suggested_values,
+            ),
+            errors=errors,
+        )
+
+
+class QnapOptionsFlow(OptionsFlowWithReload):
+    """Configure Wake-on-LAN independently of the NAS connection."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Manage Wake-on-LAN settings, including while the NAS is offline."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            options = dict(user_input)
+            try:
+                options[CONF_WOL_MACS] = normalize_mac_addresses(
+                    user_input.get(CONF_WOL_MACS, [])
+                )
+            except (TypeError, ValueError):
+                errors[CONF_WOL_MACS] = "invalid_mac"
+            try:
+                options[CONF_BROADCAST_ADDRESS] = normalize_broadcast_address(
+                    user_input.get(CONF_BROADCAST_ADDRESS, DEFAULT_BROADCAST_ADDRESS)
+                )
+            except (TypeError, ValueError):
+                errors[CONF_BROADCAST_ADDRESS] = "invalid_broadcast_address"
+            port = user_input.get(CONF_BROADCAST_PORT, DEFAULT_BROADCAST_PORT)
+            if (
+                isinstance(port, bool)
+                or not isinstance(port, int)
+                or not 1 <= port <= 65535
+            ):
+                errors[CONF_BROADCAST_PORT] = "invalid_broadcast_port"
+            if not errors:
+                options[CONF_BROADCAST_PORT] = port
+                return self.async_create_entry(
+                    title="", data={**self.config_entry.options, **options}
+                )
+
+        schema = vol.Schema(
+            {
+                vol.Optional(CONF_WOL_MACS, default=list): TextSelector(
+                    TextSelectorConfig(multiple=True)
+                ),
+                vol.Required(
+                    CONF_BROADCAST_ADDRESS, default=DEFAULT_BROADCAST_ADDRESS
+                ): cv.string,
+                vol.Required(
+                    CONF_BROADCAST_PORT, default=DEFAULT_BROADCAST_PORT
+                ): vol.All(vol.Coerce(int), vol.Range(min=1, max=65535)),
+            }
+        )
+        return self.async_show_form(
+            step_id="init",
+            data_schema=self.add_suggested_values_to_schema(
+                schema,
+                user_input if user_input is not None else self.config_entry.options,
             ),
             errors=errors,
         )

@@ -45,7 +45,7 @@ class QNAPFirmwareUpdateEntity(CoordinatorEntity[QnapCoordinator], UpdateEntity)
         return DeviceInfo(
             identifiers={(DOMAIN, self._unique_id)},
             serial_number=self._unique_id,
-            name=sys_info.name if sys_info else None,
+            name=sys_info.name if sys_info else self.coordinator.config_entry.title,
             model=sys_info.model if sys_info else None,
             sw_version=sys_info.firmware_version if sys_info else None,
             manufacturer="QNAP",

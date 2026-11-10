@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import logging
 
-from qnap_client.models import NasData
-
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -18,10 +16,11 @@ from homeassistant.const import (
     UnitOfInformation,
     UnitOfTemperature,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from qnap_client.models import NasData
 
 from .const import DOMAIN
 from .coordinator import QnapConfigEntry, QnapCoordinator
@@ -187,37 +186,52 @@ async def async_setup_entry(
     coordinator = config_entry.runtime_data
     uid = config_entry.unique_id
     assert uid is not None
-    data: NasData = coordinator.data
 
-    sensors: list[QNAPSensor] = []
+    added = False
 
-    sensors.extend(
-        QNAPSystemSensor(coordinator, description, uid)
-        for description in _SYSTEM_MON_COND
-    )
-    sensors.extend(
-        QNAPCPUSensor(coordinator, description, uid) for description in _CPU_MON_COND
-    )
-    sensors.extend(
-        QNAPMemorySensor(coordinator, description, uid)
-        for description in _MEMORY_MON_COND
-    )
-    sensors.extend(
-        QNAPNetworkSensor(coordinator, description, uid, iface.name)
-        for iface in data.network_interfaces
-        for description in _NETWORK_MON_COND
-    )
-    sensors.extend(
-        QNAPDriveSensor(coordinator, description, uid, drive.drive_number)
-        for drive in data.drives
-        for description in _DRIVE_MON_COND
-    )
-    sensors.extend(
-        QNAPVolumeSensor(coordinator, description, uid, vol.name)
-        for vol in data.volumes
-        for description in _VOLUME_MON_COND
-    )
-    async_add_entities(sensors)
+    @callback
+    def async_add_when_ready() -> None:
+        """Create entities only after receiving the first real NAS data."""
+        nonlocal added
+        if added or coordinator.data is None or not coordinator.last_update_success:
+            return
+        data: NasData = coordinator.data
+
+        sensors: list[QNAPSensor] = []
+
+        sensors.extend(
+            QNAPSystemSensor(coordinator, description, uid)
+            for description in _SYSTEM_MON_COND
+        )
+        sensors.extend(
+            QNAPCPUSensor(coordinator, description, uid)
+            for description in _CPU_MON_COND
+        )
+        sensors.extend(
+            QNAPMemorySensor(coordinator, description, uid)
+            for description in _MEMORY_MON_COND
+        )
+        sensors.extend(
+            QNAPNetworkSensor(coordinator, description, uid, iface.name)
+            for iface in data.network_interfaces
+            for description in _NETWORK_MON_COND
+        )
+        sensors.extend(
+            QNAPDriveSensor(coordinator, description, uid, drive.drive_number)
+            for drive in data.drives
+            for description in _DRIVE_MON_COND
+        )
+        sensors.extend(
+            QNAPVolumeSensor(coordinator, description, uid, vol.name)
+            for vol in data.volumes
+            for description in _VOLUME_MON_COND
+        )
+        async_add_entities(sensors)
+        added = True
+
+    remove_listener = coordinator.async_add_listener(async_add_when_ready)
+    config_entry.async_on_unload(remove_listener)
+    async_add_when_ready()
 
 
 class QNAPSensor(CoordinatorEntity[QnapCoordinator], SensorEntity):

@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
 import logging
-
-from qnap_client import ContainerStationClient, QnapClient, QnapError
-from qnap_client.models import NasData
+from datetime import timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -19,8 +16,9 @@ from homeassistant.const import (
     CONF_VERIFY_SSL,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from qnap_client import ContainerStationClient, QnapAuthError, QnapClient, QnapError
+from qnap_client.models import NasData
 
 from .const import (
     DEFAULT_PORT,
@@ -62,26 +60,33 @@ class QnapCoordinator(DataUpdateCoordinator[NasData]):
             timeout=config_entry.data.get(CONF_TIMEOUT, DEFAULT_TIMEOUT),
         )
         self._cs = ContainerStationClient(self._api)
+        self._authenticated = False
 
-    async def _async_setup(self) -> None:
-        """Authenticate on first setup."""
-        try:
-            await self._api.login()
-        except QnapError as err:
-            raise ConfigEntryNotReady(f"Cannot connect to QNAP NAS: {err}") from err
+    async def async_close(self) -> None:
+        """Release the HTTP session without making another request to the NAS."""
+        await self.async_shutdown()
+        await self._api.close(logout=False)
 
     async def _async_update_data(self) -> NasData:
-        """Fetch all NAS data."""
+        """Authenticate as needed, then fetch NAS data without retrying requests."""
         try:
+            if not self._authenticated:
+                await self._api.login()
+                self._authenticated = True
             data = await self._api.get_all()
-        except QnapError as err:
-            raise UpdateFailed(f"Error fetching QNAP data: {err}") from err
+        except QnapAuthError:
+            self._authenticated = False
+            # Keep the entry loaded so WOL remains usable with invalid credentials.
+            raise UpdateFailed("QNAP authentication failed") from None
+        except QnapError:
+            self._authenticated = False
+            raise UpdateFailed("Unable to fetch QNAP data") from None
 
         # Container Station — non-fatal
         try:
             data.containers = await self._cs.get_containers()
         except Exception as err:  # noqa: BLE001
-            _LOGGER.warning("Container Station unavailable: %s", err)
+            _LOGGER.debug("Container Station unavailable (%s)", type(err).__name__)
             data.containers = getattr(self.data, "containers", []) if self.data else []
 
         return data

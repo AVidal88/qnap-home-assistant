@@ -49,6 +49,65 @@ The integration uses a UI config flow — no YAML needed.
 
 To update your settings later, go to **Settings → Devices & Services**, find the QNAP integration, and click **Reconfigure**.
 
+## Wake-on-LAN (working branch)
+
+This branch adds a **Wake on LAN** button. Configure it in **Settings → Devices &
+Services → QNAP → Configure**. Add the physical MAC address of every WOL-capable
+NIC, an IPv4 broadcast address (default `255.255.255.255`), and UDP port (default
+`9`; QNAP also documents `40000`). Duplicate MACs are removed. Clear the MAC list
+to remove the wake button. Options can be changed while QTS is unreachable.
+
+The button is available even if the NAS is off, authentication fails, or Home
+Assistant restarts while QTS is unreachable. A press sends one magic packet per
+configured MAC; it does not authenticate, poll QTS, or confirm that the NAS booted.
+After the first real response, monitoring entities are added; later connection
+failures mark them unavailable. Recovery uses the existing five-minute poll.
+Initial installation still requires a reachable NAS to establish its identity.
+
+Enable WOL in QTS/QuTS hero and verify support for the exact model and NIC.
+EuP disables WOL. After removing NAS power while it is off, QNAP documents that a
+manual power-on is needed before WOL works again. Broadcast routing/firewall,
+VLAN, and container-network settings must permit delivery from Home Assistant.
+HA running on the NAS itself cannot wake that NAS after it shuts down.
+
+For LACP, configure physical port MACs explicitly. A bond/virtual interface MAC
+does not establish which physical adapters can wake. Test each relevant port and
+the actual switch topology. One broadcast destination is supported per NAS;
+multiple subnets may require network configuration or a later per-NIC destination
+feature. No universal LACP or 10GbE support is claimed.
+
+**Shutdown and restart are not implemented.** Public examples did not establish
+an authenticated request/acceptance contract for QTS 5.2 or QuTS hero. No real NAS
+power action has been executed during development. See the [research and physical
+acceptance plan](docs/power-control-research.md) for evidence and remaining work.
+
+This branch requires **Home Assistant 2026.10.4 or later**, the version used for
+integration tests, and a **local, unreleased `qnap-client==1.1.1`** candidate.
+It is not ready for an ordinary HACS install until that client version is
+published. The old `2024.1` HACS minimum was not valid for the APIs used here;
+older HA versions have not been tested by this contribution.
+
+## Development validation
+
+On Linux with Python 3.14 and sibling `qnap` / `python-qnap` checkouts:
+
+```sh
+python3.14 -m venv .venv
+. .venv/bin/activate
+pip install -r requirements_test.txt -e ../python-qnap
+python -m pytest -q
+python -m pip check
+ruff check custom_components tests
+ruff format --check custom_components tests
+```
+
+Tests use Home Assistant 2026.10.4 and block network sockets; WOL transmission
+and QTS access are mocked. Synthetic client models verify integration behavior,
+not firmware response formats or physical NAS compatibility. The client repository
+also has separate HTTP transport tests using an in-process loopback server.
+Hassfest/HACS workflows and physical acceptance are separate validation steps.
+The new pytest workflow requires the client release before it can pass remotely.
+
 ## 📊 Available Entities
 
 ### Sensors
@@ -106,7 +165,7 @@ Container switches use the Container Station v3 API (QTS Bearer token auth for r
 ### Architecture
 - Config flow only — YAML configuration removed
 - `runtime_data` typed config entry pattern
-- `CoordinatorEntity` throughout — all entities share a single polling coordinator
+- Telemetry entities use `CoordinatorEntity` and share a polling coordinator; the WOL button is independent of QTS availability
 - `_attr_has_entity_name = True` + `translation_key` on all sensors
 - Non-fatal coordinator sections — Container Station and firmware update failures don't crash the integration
 

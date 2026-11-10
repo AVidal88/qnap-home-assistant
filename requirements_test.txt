@@ -1,0 +1,5 @@
+# Linux, Python 3.14; harness pins homeassistant==2026.10.4.
+pytest-homeassistant-custom-component==0.13.375
+wakeonlan==3.3.0
+# Install qnap-client separately: ../python-qnap locally, published pin in CI.
+ruff==0.17.4

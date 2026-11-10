@@ -1,102 +1,114 @@
-"""Setup the QNAP tests."""
+"""Fixtures for the custom integration; no real QTS requests are permitted."""
 
-from collections.abc import Generator
-from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, PropertyMock, patch
 
 import pytest
-
-from homeassistant.components.qnap.const import (
-    DEFAULT_PORT,
-    DEFAULT_SSL,
-    DEFAULT_TIMEOUT,
-    DEFAULT_VERIFY_SSL,
-    DOMAIN,
-)
-from homeassistant.const import (
-    CONF_HOST,
-    CONF_PASSWORD,
-    CONF_PORT,
-    CONF_SSL,
-    CONF_TIMEOUT,
-    CONF_USERNAME,
-    CONF_VERIFY_SSL,
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+from qnap_client.models import (
+    Container,
+    CpuStats,
+    DriveHealth,
+    FirmwareUpdate,
+    MemoryStats,
+    NasData,
+    NetworkInterface,
+    SystemHealth,
+    SystemInfo,
+    VolumeStats,
 )
 
-from tests.common import MockConfigEntry, load_fixture
+from custom_components.qnap.const import DOMAIN
 
-TEST_HOST = "1.2.3.4"
-TEST_USERNAME = "admin"
-TEST_PASSWORD = "password"
-TEST_NAS_NAME = "Test NAS"
 TEST_SERIAL = "QX1234567"
-INSTALLED_VERSION = "5.1.0.2548"
 
 
-def _get_fixture_data() -> dict[str, Any]:
-    """Load the canonical QNAP coordinator fixture data."""
-    import json
-
-    return json.loads(load_fixture("qnap_data.json", DOMAIN))
+@pytest.fixture(autouse=True)
+def custom_integration(enable_custom_integrations):
+    """Load custom_components.qnap rather than the unrelated core integration."""
 
 
 @pytest.fixture
-def mock_config_entry() -> MockConfigEntry:
-    """Return a mock QNAP config entry."""
-    return MockConfigEntry(
-        domain=DOMAIN,
-        unique_id=TEST_SERIAL,
-        data={
-            CONF_HOST: TEST_HOST,
-            CONF_USERNAME: TEST_USERNAME,
-            CONF_PASSWORD: TEST_PASSWORD,
-            CONF_SSL: DEFAULT_SSL,
-            CONF_VERIFY_SSL: DEFAULT_VERIFY_SSL,
-            CONF_PORT: DEFAULT_PORT,
-            CONF_TIMEOUT: DEFAULT_TIMEOUT,
-        },
+def nas_data():
+    """Synthetic application models; these do not prove a firmware API contract."""
+    return NasData(
+        system_info=SystemInfo("TS-453D", "Test NAS", TEST_SERIAL, "5.1.0.2548", 60),
+        system_health=SystemHealth("Ready"),
+        cpu=CpuStats(10, 55),
+        memory=MemoryStats(8192, 4096, 4096),
+        network_interfaces=[
+            NetworkInterface(
+                name="eth0",
+                mac="00:11:22:33:44:55",
+                ip="192.0.2.10",
+                rx_bytes_per_sec=2000,
+                tx_bytes_per_sec=1000,
+            )
+        ],
+        drives=[DriveHealth(1, "Test drive", "good", 35)],
+        volumes=[
+            VolumeStats("DataVol1", 1000000000000, 500000000000, 500000000000, "Ready")
+        ],
+        firmware=FirmwareUpdate("5.1.0.2548", None),
+        containers=[
+            Container("abc123", "Example", "running", "example:latest", "docker")
+        ],
     )
 
 
 @pytest.fixture
-def mock_qnap_client() -> Generator[MagicMock]:
-    """Mock a QNAP QNAPStats client.
+def mock_config_entry():
+    """A previously configured NAS with one physical MAC for WOL."""
+    return MockConfigEntry(
+        domain=DOMAIN,
+        title="Test NAS",
+        unique_id=TEST_SERIAL,
+        data={
+            "host": "192.0.2.10",
+            "username": "test",
+            "password": "test-password",
+            "port": 8080,
+            "ssl": False,
+            "verify_ssl": True,
+        },
+        options={
+            "wol_macs": ["00:11:22:33:44:55"],
+            "broadcast_address": "192.0.2.255",
+            "broadcast_port": 9,
+        },
+    )
 
-    Patches QNAPStats in the coordinator module and pre-loads all API
-    methods with data from the canonical JSON fixture file.
-    """
-    fixture = _get_fixture_data()
-    with patch(
-        "homeassistant.components.qnap.coordinator.QNAPStats",
-        autospec=True,
-    ) as mock_class:
-        client = mock_class.return_value
-        client.get_system_stats.return_value = fixture["system_stats"]
-        client.get_system_health.return_value = fixture["system_health"]
-        client.get_smart_disk_health.return_value = fixture["smart_drive_health"]
-        client.get_volumes.return_value = fixture["volumes"]
-        client.get_bandwidth.return_value = fixture["bandwidth"]
-        client.get_firmware_update.return_value = fixture["firmware_update"]
+
+@pytest.fixture(autouse=True)
+def mock_qnap_client(nas_data):
+    """Intercept every production client at its import sites, including setup."""
+    with (
+        patch(
+            "custom_components.qnap.coordinator.QnapClient", autospec=True
+        ) as client_cls,
+        patch(
+            "custom_components.qnap.coordinator.ContainerStationClient", autospec=True
+        ) as cs_cls,
+        patch(
+            "custom_components.qnap.config_flow.QnapClient", autospec=True
+        ) as flow_cls,
+    ):
+        client = client_cls.return_value
+        client.login = AsyncMock()
+        client.get_all = AsyncMock(return_value=nas_data)
+        client.close = AsyncMock()
+        cs_cls.return_value.get_containers = AsyncMock(return_value=nas_data.containers)
+        flow_client = flow_cls.return_value
+        flow_client.__aenter__.return_value = flow_client
+        flow_client.get_system_info.return_value = nas_data.system_info
         yield client
 
 
 @pytest.fixture
-def mock_setup_entry() -> Generator[MagicMock]:
-    """Override async_setup_entry."""
+def entity_registry_enabled_by_default():
+    """Exercise optional diagnostic sensors as well as enabled entities."""
     with patch(
-        "homeassistant.components.qnap.async_setup_entry", return_value=True
-    ) as mock_setup_entry:
-        yield mock_setup_entry
-
-
-@pytest.fixture
-def qnap_connect() -> Generator[MagicMock]:
-    """Mock qnap connection (config flow only)."""
-    with patch(
-        "homeassistant.components.qnap.config_flow.QNAPStats", autospec=True
-    ) as host_mock_class:
-        host_mock = host_mock_class.return_value
-        host_mock.get_system_stats.return_value = {
-            "system": {"serial_number": TEST_SERIAL, "name": TEST_NAS_NAME}
-        }
-        yield host_mock
+        "homeassistant.helpers.entity.Entity.entity_registry_enabled_default",
+        new_callable=PropertyMock,
+        return_value=True,
+    ):
+        yield
