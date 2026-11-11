@@ -63,10 +63,16 @@ PR. After the library PR is merged and a new release is published, update the
 manifest to that actual version and re-run the HA tests. No package was uploaded.
 
 Integration testing uses Python 3.14.10, Home Assistant 2026.10.4, and
-pytest-homeassistant-custom-component 0.13.375 on Linux/WSL. The HACS minimum is
-conservatively updated to the tested HA 2026.10.4 baseline. Older versions have
-not been validated; the old 2024.1 declaration was inconsistent with the modern
-APIs already used by the integration.
+pytest-homeassistant-custom-component 0.13.375 on Linux/WSL. The HACS API minimum
+is 2025.8.0 because `OptionsFlowWithReload` first appears in
+[core 2025.8.0](https://github.com/home-assistant/core/blob/2025.8.0/homeassistant/config_entries.py)
+and is absent from
+[core 2025.7.0](https://github.com/home-assistant/core/blob/2025.7.0/homeassistant/config_entries.py).
+The required typed config entries, entity-platform callback, coordinator
+`config_entry` argument, and shutdown method also exist in that release. Full
+runtime validation at this lower API boundary remains pending. An import smoke
+check with the older wheel and current dependencies stopped at the missing
+older dependency `voluptuous_serialize` before loading the integration.
 
 Client dev dependencies cap aiohttp below 3.14 because aioresponses 0.7.9 cannot
 construct aiohttp 3.14 responses (upstream aioresponses issue #289). This cap is
@@ -74,13 +80,32 @@ only in the dev extra. Production keeps aiohttp>=3.9.0. A separate real HTTP
 loopback suite validates aiohttp 3.14.5 without that mock dependency. No endpoint
 or response used by those tests is claimed to originate from QTS firmware.
 
+## Review validation on 2026-11-11
+
+| Check | Result |
+| --- | --- |
+| Focused client, full suite, aiohttp 3.13.5 | 60 passed |
+| Focused client, new transport/power tests, aiohttp 3.14.5 | 54 passed |
+| Preserved original client branch, full suite | 61 passed |
+| Local diagnostic tests | 8 passed |
+| Integration suite, HA 2026.10.4 / aiohttp 3.14.5 | 38 passed |
+| Integration Ruff check and format | Passed |
+
+The HA re-run selected the focused client source explicitly with `PYTHONPATH`.
+It used the complete official Home Assistant wheel extracted into a temporary
+Linux directory because the existing workspace installation was incomplete.
+The dependencies came from the workspace's Python 3.14.10 environment. QTS and
+WOL were mocked and network sockets remained disabled by the test harness.
+
+The focused power methods now report `QnapPowerOutcomeUnknown` after HTTP 2xx
+until an endpoint-specific response contract is established. They send one POST
+without an automatic preflight requirement or retry. The source evidence still
+records the QTS UI's separate read-only warning check. Real response, permission,
+and physical power behavior remain pending.
+
 ## Initial milestone validation results
 
-The table records the earlier WOL milestone. The focused library branch has
-since passed 57 local tests and built a wheel; its synthetic responses do not
-establish QTS device compatibility. A current HA re-run remains pending because
-the available HA test environment is incomplete and a clean Windows environment
-could not resolve its Home Assistant package.
+The following table records the earlier WOL milestone.
 
 | Check | Environment | Result |
 | --- | --- | --- |

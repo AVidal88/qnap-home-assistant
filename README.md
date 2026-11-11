@@ -76,16 +76,18 @@ the actual switch topology. One broadcast destination is supported per NAS;
 multiple subnets may require network configuration or a later per-NIC destination
 feature. No universal LACP or 10GbE support is claimed.
 
-**Shutdown and restart are not implemented.** Public examples did not establish
-an authenticated request/acceptance contract for QTS 5.2 or QuTS hero. No real NAS
-power action has been executed during development. See the [research and physical
-acceptance plan](docs/power-control-research.md) for evidence and remaining work.
+**Shutdown and restart buttons remain pending in this integration.** The official
+TS-431P-family QTS 5.2.11.3661 web client establishes their authenticated request
+shape. A separate client branch contains draft API methods whose response,
+permissions, and physical behavior still require validation. QuTS hero API
+compatibility also remains unverified. See the [research and physical acceptance
+plan](docs/power-control-research.md) for evidence and remaining work.
 
-This branch requires **Home Assistant 2026.10.4 or later**, the version used for
-integration tests, and a **local, unreleased `qnap-client==1.1.1`** candidate.
-It is not ready for an ordinary HACS install until that client version is
-published. The old `2024.1` HACS minimum was not valid for the APIs used here;
-older HA versions have not been tested by this contribution.
+The options flow uses `OptionsFlowWithReload`, introduced in **Home Assistant
+2025.8**. The full integration suite runs against **Home Assistant 2026.10.4**;
+runtime testing on earlier releases remains pending. The branch also requires a
+**local, unreleased `qnap-client==1.1.1`** candidate and awaits a published client
+release before an ordinary HACS installation can resolve its dependencies.
 
 ## Development validation
 
