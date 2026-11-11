@@ -1,13 +1,13 @@
 # NAS power control: research and design
 
-Research date: 2026-11-10. This document records evidence, design boundaries, and a hardware acceptance plan. It is not a statement that NAS shutdown/restart has been implemented or validated.
+Initial research date: 2026-11-10. This document retains the WOL-first design and hardware acceptance plan. The later QTS 5.2.11 findings below supersede its initial power-endpoint conclusion; neither shutdown nor restart has been validated on a physical NAS.
 
 ## Revisions inspected
 
 - Integration: [`disforw/qnap` at `7630e0e03a255f9cdd35d109e2d50bc6666125d8`](https://github.com/disforw/qnap/tree/7630e0e03a255f9cdd35d109e2d50bc6666125d8), branch `Core`.
 - Client: [`disforw/python-qnap` at `4792a60e0175c6eda31e18474c245d98f926d681`](https://github.com/disforw/python-qnap/tree/4792a60e0175c6eda31e18474c245d98f926d681), branch `main`.
 
-The work is developed on isolated local branches intended for forks. Remote fork ownership/existence must be confirmed before publishing branches. No upstream repository changes, published pull requests, or real NAS power actions are part of this investigation.
+The original `feat/power-control` commits are preserved and published in the [integration fork](https://github.com/AVidal88/qnap-home-assistant/tree/feat/power-control) and [client fork](https://github.com/AVidal88/qnap-python-client/tree/feat/power-control). Both checkouts use `origin` for the corresponding fork and a fetch-only `upstream` for `disforw`. A separate [focused client branch](https://github.com/AVidal88/qnap-python-client/tree/feat/qts-power-api) contains draft shutdown/reboot methods. No upstream branch or PR has been changed, and no real power action has been sent. The owner's first authentication-only diagnostic attempt returned a generic authentication error before any preflight GET. MFA is suspected but not yet confirmed from response flags.
 
 ## Existing architecture and conventions
 
@@ -49,9 +49,9 @@ The [manifest](https://github.com/disforw/qnap/blob/7630e0e03a255f9cdd35d109e2d5
 
 ## Existing issues and related work
 
-The issue and PR searches were read-only. No maintainer acceptance is assumed.
+The initial issue/PR search was read-only. The maintainer subsequently accepted the proposal in [issue #21](https://github.com/disforw/qnap/issues/21) and requested the client API PR first.
 
-- [Integration issue #21: native power controls](https://github.com/disforw/qnap/issues/21) proposes three buttons and a library-first API contribution. It reports a TS-431P on QTS 5.2.x waking after full shutdown with 802.3ad LACP, including a separate switch/client restart. This is the reporter's hardware observation, not a test performed during this contribution or a cross-model support guarantee. There were no comments when inspected.
+- [Integration issue #21: native power controls](https://github.com/disforw/qnap/issues/21) proposes three buttons and a library-first API contribution. It reports a TS-431P on QTS 5.2.x waking after full shutdown with 802.3ad LACP, including a separate switch/client restart. This is the reporter's hardware observation, not a test performed during this contribution or a cross-model support guarantee. The maintainer has since welcomed the work and requested a client API PR before the HA buttons/configuration/translations PR; automatic WOL detection is preferred where reliable, with manual configuration accepted as a fallback.
 - [Integration issue #20: QTS 5.2.10 decoding failure](https://github.com/disforw/qnap/issues/20) reports setup failure on a TS-230 using a delegated System Monitoring account. This is evidence against claiming all QTS 5.2 devices work without additional fixtures.
 - [Integration issue #14: MFA](https://github.com/disforw/qnap/issues/14) tracks missing MFA support. The current client sends username/password only. Do not infer from that limitation that QTS itself lacks all two-step authentication APIs, or recommend weakening an existing administrator account.
 - [Integration issue #17: NIC keys](https://github.com/disforw/qnap/issues/17) reports nonuniform NIC data; [issue #18](https://github.com/disforw/qnap/issues/18) reports duplicate-device identification. Neither should be expanded into an unrelated parser/identity rewrite within WOL work.
@@ -76,7 +76,7 @@ The official [QTS 5.2 task-bar guide](https://docs.qnap.com/operating-system/qts
 
 The official [delegated administration guide](https://docs.qnap.com/operating-system/qts/5.2.x/en-us/delegated-administration-87EDB7A6.html) distinguishes System Monitoring from broader System Management. It does not specify which delegated role may invoke a host power CGI action. Do not equate valid login or a readable monitoring endpoint with permission to stop the NAS. Do not assume only the default `admin` account can perform the action either.
 
-A [QNAP-hosted authentication PDF v5.1.0](https://eu1.qnap.com/dev/QTS_HTTP_API-Authentication_v5.1.0.pdf) is linked by external clients, but could not be retrieved during this investigation. Its title and link are not evidence of its current contents. Existing client source proves how this project authenticates; it does not prove all current QTS authentication modes are supported.
+The [QNAP authentication API v5.1.0](https://eu1.qnap.com/dev/QTS_HTTP_API-Authentication_v5.1.0.pdf) has since been inspected. It documents password login, SID validation, and a two-step challenge where a correct first password step can return `authPassed=0` and `need_2sv=1`; a newer flow uses `need_2_step_verification=1`. The current password-only client cannot complete MFA. A generic login failure on the owner's MFA-enabled account does not by itself prove which flag QTS returned.
 
 ## Candidate power endpoint and evidence gap
 
@@ -91,7 +91,7 @@ This is direct source evidence for an existing third-party implementation. It is
 
 Other examples do not close the gap. For example, [`ups-guard`](https://github.com/wtj-0527/ups-guard/blob/c34f747b71c84d482e73a0a186c08279d8f2debd/backend/src/hooks/qnap_shutdown.py) advertises both shutdown and reboot but its executable path always sends shutdown and treats HTTP 200 as sufficient success. Copying that code would invent support. Search results for alternative `power.cgi` paths likewise lacked a verified contract.
 
-No sufficiently verified restart request, action value, permission failure response, accepted response, or firmware-specific contract was found. **Shutdown/restart methods and buttons must remain unimplemented until that evidence is obtained.** A placeholder button that always errors would suggest a supported function and is not an acceptable substitute. Do not send speculative power parameters even as a probe.
+Later inspection of [official TS-431P-family QTS 5.2.11.3661 firmware](https://download.qnap.com/Storage/TS-X41/TS-131P_231P_431P_X31%2B_X31K_20261023-5.2.11.3661.zip) found that its web client sends a SID-authenticated POST to `/cgi-bin/sys/sysRequest.cgi` with `subfunc=power_mgmt` and `apply=shutdown` or `apply=restart`. It first requests `apply=chk_shutdown_running` with GET. The web client's success callback does not interpret the POST body. The server response, permission enforcement, cookie dependence, and QuTS hero behavior remain unverified. See the [focused client evidence](https://github.com/AVidal88/qnap-python-client/blob/feat/qts-power-api/docs/power-api-evidence.md). Draft library methods and synthetic tests now exist; HA shutdown/reboot buttons remain unimplemented. No destructive endpoint has been probed on the NAS.
 
 ## Chosen design boundary
 
@@ -111,9 +111,9 @@ The wake button must be created for an already-configured NAS when HA starts off
 
 Keep normal telemetry entities unavailable while there is no successful data refresh. Do not populate fake online readings to satisfy setup. Recover normal polling when QTS returns; represent credential failures separately. Release HTTP sessions on unload and failed setup. Options changes must preserve NAS credentials and trigger an orderly entity reload.
 
-### Future API actions belong in the client
+### API actions belong in the client
 
-After a real contract is established, add explicit async shutdown and restart methods to `QnapClient`, then expose native HA buttons. Preserve existing monitoring and Container Station behavior. Use QTS's orderly mechanism, never a relay, smart plug, forced command, or undocumented force flag.
+Draft async `QnapClient.shutdown()` and `QnapClient.reboot()` methods now exist on the separate client branch. They require physical acceptance evidence before the first PR is presented as ready. The follow-up HA buttons must preserve existing monitoring and Container Station behavior and use QTS's orderly mechanism, never a relay, smart plug, forced command, or undocumented force flag.
 
 Each press may submit at most one destructive request. No automatic replay after timeout, transport loss, XML authentication rejection, HTTP 401/403, reauthentication, or HA refresh. Authentication can be established before submission, but failure after submission cannot trigger retry. Disable redirect following for the action request and audit library/middleware retry behavior. Serialize competing power actions so shutdown and restart cannot overlap.
 
@@ -173,9 +173,8 @@ These are future acceptance criteria, not invented QTS response samples.
 
 ## Recommended contribution sequence
 
-1. **Client security/transport correction:** remove session logging, sanitize exception and response propagation, distinguish HTTP/authentication failures conservatively, and test logs/tracebacks and session cleanup. Keep this independently reviewable and avoid unrelated parser changes. Coordinate a client release before changing a distributed integration pin.
-2. **Integration offline lifecycle and WOL:** add persisted manual options and one wake button; make startup/reload and QTS-offline availability correct; add a runnable custom-component test harness, translations, documentation, and offline/error tests. Reference issue #21 and clearly state packet-level versus physical verification.
-3. **Client host power API, then HA shutdown/restart buttons:** proceed only after sanitized real request/response evidence establishes each action, permissions, authentication, and ambiguity handling. Include fixture provenance and model/firmware limits; release the library before updating the integration requirement.
-4. Keep broader hero parsing, missing sensors, identity issues, and MFA work in separate contributions unless a minimal prerequisite is demonstrated. Link the relevant existing issues and request the offered sanitized hero fixtures when communication is separately authorized.
+1. **First PR, client API:** finish validating the focused `feat/qts-power-api` branch on QTS 5.2.11.3661, especially login/MFA, preflight shape, action response, and permissions. Keep only the transport/security changes required for safe power commands, with no automatic destructive retries. Open against `disforw/python-qnap` when evidence supports it.
+2. **Second PR, Home Assistant:** after the client release exists on PyPI, add native wake, shutdown, and reboot buttons, config flow options, translations, and tests against `disforw/qnap`. Preserve the existing WOL/offline work and allow manual MAC/broadcast configuration because reliable physical-interface detection has not been demonstrated.
+3. Keep broader hero parsing, missing sensors, identity issues, and full MFA support in separate contributions unless a minimal prerequisite is demonstrated. QuTS hero requires its own validation before compatibility is claimed.
 
 No PR should describe all three controls as complete while the shutdown/restart contract remains unverified. A tested, documented WOL contribution plus an explicit follow-up plan is preferable to exposing destructive controls backed by assumed API responses.

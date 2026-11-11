@@ -1,7 +1,12 @@
 # Power-control contribution: validation and delivery
 
-Date: 2026-11-10. No real NAS was contacted, woken, shut down, or restarted.
-No remote branches, tags, packages, issues, comments, or PRs were published.
+Initial WOL milestone: 2026-11-10. At that point no real NAS was contacted
+during development and no remote branches were published. Since then both
+`feat/power-control` branches and a focused client API branch have been pushed
+to the owner's forks. The owner's first authentication-only diagnostic against
+the TS-431P returned `QnapAuthError` before any preflight GET. MFA is suspected
+but not yet confirmed from response flags. No shutdown or restart command has
+been sent and no PR, package, or tag has been published.
 
 ## Delivered scope
 
@@ -27,32 +32,35 @@ reads now fail get_all instead of returning an apparently successful empty NAS;
 optional section failures retain the existing partial-data behavior. Such defaults
 remain a known monitoring limitation, not verified firmware support.
 
-**Shutdown and restart remain unimplemented.** No sufficiently verified request,
-permission model, or acceptance response was found for QTS 5.2/QuTS hero. There are
-no speculative power endpoints, force flags, placeholder buttons, or destructive
-request retries. See [research](power-control-research.md) for primary sources and
-the future physical acceptance protocol.
+**Shutdown and restart buttons remain unimplemented in this integration.** The
+official TS-431P-family QTS 5.2.11.3661 web client later established the request
+shape, and [draft library methods](https://github.com/AVidal88/qnap-python-client/tree/feat/qts-power-api)
+now exist. Their actual response, permissions, and physical behavior remain
+unverified; QuTS hero compatibility is also unknown. See
+[research](power-control-research.md) and the
+[client evidence](https://github.com/AVidal88/qnap-python-client/blob/feat/qts-power-api/docs/power-api-evidence.md).
 
 ## Repositories and branches
 
 - Integration base: disforw/qnap Core at 7630e0e03a255f9cdd35d109e2d50bc6666125d8.
 - Client base: disforw/python-qnap main at 4792a60e0175c6eda31e18474c245d98f926d681.
-- Both local checkouts use the new feat/power-control branch. Original local
-  Core/main branches retain their base revisions.
-- GitHub connector identifies AVidal88; repository lookup and search found no
-  AVidal88/qnap or AVidal88/python-qnap fork. The fork-location question is pending.
-  Therefore remote fork delivery is not claimed. Only a read-only upstream remote
-  remains, with its push URL set to DISABLED. Confirm/create forks before adding
-  origin or publishing work branches.
+- Both original local checkouts remain on `feat/power-control`; integration
+  commit `19be179` and client commit `373f225` are preserved and match the
+  published fork branches. The focused client worktree uses `feat/qts-power-api`.
+- Integration `origin`: [AVidal88/qnap-home-assistant](https://github.com/AVidal88/qnap-home-assistant);
+  client `origin`: [AVidal88/qnap-python-client](https://github.com/AVidal88/qnap-python-client).
+  Each `upstream` fetches from the corresponding `disforw` repository and has
+  its push URL disabled. No PR has been opened.
 
 ## Dependency boundary
 
-The client candidate is version 1.1.1 (aligned package and module metadata).
-The integration manifest targets qnap-client==1.1.1 and wakeonlan==3.3.0. Version
-1.1.1 is local and unreleased: ordinary HACS installation and the new pytest
-workflow require publication of that client release first. No package was uploaded.
-The local test harness loads qnap_client from the adjacent edited checkout, not
-PyPI 1.1.0.
+The original client `feat/power-control` candidate uses version 1.1.1. The
+focused API branch retains upstream package version 1.1.0 for maintainer review;
+its local wheel is not a published release. The integration manifest still pins
+`qnap-client==1.1.1` plus `wakeonlan==3.3.0`. Version 1.1.1 is not on PyPI,
+so this HA branch is not ready for ordinary HACS installation or a distributable
+PR. After the library PR is merged and a new release is published, update the
+manifest to that actual version and re-run the HA tests. No package was uploaded.
 
 Integration testing uses Python 3.14.10, Home Assistant 2026.10.4, and
 pytest-homeassistant-custom-component 0.13.375 on Linux/WSL. The HACS minimum is
@@ -66,7 +74,13 @@ only in the dev extra. Production keeps aiohttp>=3.9.0. A separate real HTTP
 loopback suite validates aiohttp 3.14.5 without that mock dependency. No endpoint
 or response used by those tests is claimed to originate from QTS firmware.
 
-## Validation results
+## Initial milestone validation results
+
+The table records the earlier WOL milestone. The focused library branch has
+since passed 57 local tests and built a wheel; its synthetic responses do not
+establish QTS device compatibility. A current HA re-run remains pending because
+the available HA test environment is incomplete and a clean Windows environment
+could not resolve its Home Assistant package.
 
 | Check | Environment | Result |
 | --- | --- | --- |
@@ -82,8 +96,8 @@ or response used by those tests is claimed to originate from QTS firmware.
 | Client wheel build | Local qnap_client-1.1.1 wheel | Passed |
 | Official Hassfest | core tag 2026.10.4, commit 357cae5c598dfcd7a0ea7dc5b1facccd4ec6037b | 1 integration, 0 invalid |
 | HACS action | Docker Linux daemon unavailable | Not executed |
-| Remote CI | No branch push/workflow dispatch | Not executed |
-| Physical QTS 5.2 / QuTS hero | No device calls or power authorization | Not executed |
+| Remote CI | No PR/workflow dispatch at this milestone | Not executed |
+| Physical QTS 5.2 / QuTS hero | No device calls or power authorization at this milestone | Not executed |
 
 Hassfest emitted one expected warning: the qnap domain collides with the built-in
 core integration. It was run locally using the official script, installed HA
@@ -152,19 +166,19 @@ Client:
    single deliberate shutdown/restart from the official QTS UI. Collect sanitized
    request/acceptance/denial/expiry evidence with exact firmware provenance.
    Do not export raw HAR, cookies, SIDs, passwords or authenticated URLs.
-5. Implement and test each host power method only when its contract is established.
+5. Refine the draft host-power methods only when the remaining contract is established.
    Validate monitoring-only vs administrator/delegated permissions, expired sessions,
    errors, and ambiguous post-send disconnects with no replay. Repeat on hero before
    claiming hero compatibility. Never use forced power removal.
 
 ## Suggested PR sequence
 
-1. Client security/session/availability fixes, narrowly reviewed and released first.
-2. Integration WOL/offline lifecycle, test harness, translations and documentation;
-   reference integration issue #21 and wait for the published client pin before merge.
-3. Separate client host-power API and then HA shutdown/restart buttons only after
-   real sanitized evidence and authorized physical acceptance. Keep parser/hero/MFA
-   work outside these PRs unless demonstrated to be a necessary prerequisite.
+1. First PR against `disforw/python-qnap`: validate and submit the focused
+   shutdown/reboot API, with only necessary transport/security fixes and clear
+   firmware limitations. The maintainer explicitly requested this order.
+2. Second PR against `disforw/qnap`: combine the preserved offline WOL work with
+   shutdown/reboot buttons, options, translations, and tests after the client
+   release is available. Keep parser/hero/full-MFA work separate unless required.
 
 Do not title or describe the current contribution as complete three-action power
 control. It delivers software-tested WOL and prerequisites, with explicit unfinished
