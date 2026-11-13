@@ -10,8 +10,10 @@ unverified.
 ## Requirements
 
 - Use Home Assistant 2025.3 or later for this candidate. This is the earliest
-  checked release supplying its existing imported APIs. Functional validation
-  of that minimum release remains pending. Native Wake on LAN configuration
+  checked release supplying its existing imported APIs. The assisted flow and
+  offline startup are tested at that minimum and at HA 2026.10.4 with simulated
+  QTS and real native WOL entities. Real device and browser validation remain
+  pending. Native Wake on LAN configuration
   and its button have been available from Home Assistant 2024.8.
 - Keep Home Assistant running on another machine if it must wake this NAS.
 - Create and manage your QTS account yourself. Enter its credentials locally
@@ -64,7 +66,43 @@ Complete connection and sensor checks before scheduling any power tests. Use
 power actions use the same SSL and certificate-verification selection as that
 entry.
 
-## 2. Configure optional native Wake on LAN
+## 2. Associate optional native Wake on LAN
+
+The `feat/native-wol-assistant` branch provides these guided steps after the
+NAS connection form, and through **Options** on an existing QNAP entry.
+
+1. Review discovered MAC candidates and confirm the physical interfaces you
+   intend to use. Shared or aggregated MACs require your network knowledge.
+   Enter other physical MACs manually if necessary.
+2. Select existing native WOL buttons for the NAS, or let matching confirmed
+   MACs reuse their native entries. Existing network settings are preserved.
+3. Select **Review creation of missing WOL entries** to configure missing MACs.
+   For each one, review its broadcast and port, then explicitly confirm
+   creation. QNAP completes the native config flow directly and associates its
+   real button. Leaving confirmation unchecked skips that interface.
+4. Review created, reused, unavailable and skipped results. Completed native
+   entries are retained if a later interface fails or setup is cancelled.
+   Existing QNAP entries save successful associations before the next attempt.
+5. **Do not suggest again for this NAS** suppresses the optional step during
+   reconfiguration. **Options** remains accessible, including offline, and can
+   restore suggestions or change the selected native buttons.
+
+Selected confirmed MACs automatically reuse matching native buttons. To unlink
+an interface, deselect its MAC and remove its selected native button. This
+changes QNAP's association while preserving the native entry and its settings.
+
+The NAS device's **Power on** button dispatches `button.press` to these native
+buttons. It keeps their registry UUIDs through renames and uses native WOL's
+network settings. Disabled or deleted links need review in Options. It loads
+configured, enabled native targets during QNAP setup with the NAS offline.
+Initial setup waits for one bounded QTS connection attempt before exposing
+those controls. With an unreachable NAS, this can take the configured timeout.
+Shutdown and Reboot retain their monitoring availability. The native setup
+steps and entry creation send no magic packet. Pressing Power on is a separate,
+voluntary operation to coordinate with the owner.
+
+The following manual instructions also describe the native settings used by
+the guided creation form.
 
 Wake on LAN ships with Home Assistant. Open its official setup assistant and
 follow the steps below. QNAP can operate with WOL absent, and WOL has its own

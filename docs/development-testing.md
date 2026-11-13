@@ -9,7 +9,10 @@ remain under the owner's control.
 
 | Component | Revision and state |
 | --- | --- |
-| Integration | `AVidal88/qnap-home-assistant`, branch `feat/qts-power-buttons` |
+| Integration | `AVidal88/qnap-home-assistant`, branch `feat/native-wol-assistant` |
+| Separate power-buttons candidate | `feat/qts-power-buttons`, `00ad474cf33cfd41de79980517373fa9b1281c53` |
+| Native flow proof | `d12b75ffe4be9c5a2fb6c47f2fbdae93859164d0` |
+| Assisted flow and wake implementation | `bfbfd76ab7cb2775ff64000a56346645d96ebaaa` |
 | Upstream base | `7630e0e03a255f9cdd35d109e2d50bc6666125d8` |
 | Power button implementation | `45a65f958dfdb9e9f909f7e16d6f8a11248c483e` |
 | Library candidate | `AVidal88/qnap-python-client`, commit `b2f467a7dc5899d748d901c1d7549436758429d6` |
@@ -25,8 +28,9 @@ provide their own evidence and do not establish HA acceptance.
 
 The candidate's HACS minimum is 2025.3.0, based on the APIs it imports.
 Offline integration tests use Home Assistant 2026.10.4 and Python 3.14.
-Functional testing at the declared minimum and deployment in the reference
-image below remain pending.
+The assisted flow and cold-start behavior are tested offline at that minimum
+with Python 3.13. Device deployment and the reference image below remain
+pending.
 
 The library candidate retains distribution metadata `1.1.0`. Its source contains
 the proposed power methods. The published package with that version identifies
@@ -40,7 +44,7 @@ requires the maintainer's published client release containing the methods and
 an appropriate requirement update. The local development image is an explicit
 source override.
 
-The implementation creates an independent `QnapClient` for each button press,
+The shutdown/reboot implementation creates an independent `QnapClient` per press,
 using the entry's existing HTTPS and `verify_ssl` choices. Its public power
 method sends the request. The control client closes locally without a logout
 request, and the monitoring client retains its own session. Each monitoring
@@ -80,12 +84,61 @@ in `switch.py` under Ruff 0.17.4. They are outside the button change and remain
 recorded for a separate decision. The files changed for this candidate pass
 their focused lint check.
 
-The final local run passed 44 tests, four subtests and two snapshots in that
+The earlier power-buttons candidate passed 44 tests, four subtests and two snapshots in that
 same suite on HA 2026.10.4 with the pinned client source override. Formatting
 and diff checks passed. Focused Hassfest validators for JSON, manifest,
 translations and config flow reported zero errors. The complete Hassfest
 launcher could not start in this local harness because `infrared_protocols`
 was absent. Full Hassfest and HACS CI validation remain pending.
+
+### Native WOL compatibility matrix
+
+The assisted branch tests QTS discovery with simulated client responses and
+coordinates the actual built-in `wake_on_lan` config flow and entities.
+`wakeonlan.send_magic_packet` is replaced in the tests. Network sockets remain
+blocked. A press exercises native button dispatch and the replacement emitter.
+It supplies evidence for coordination independently of a physical wake.
+
+For the declared minimum, create a separate Python 3.13 environment and install
+`requirements_test_2025.txt`. Run the same pytest command with the reviewed
+client source override. It pins the native WOL requirement from HA 2025.3.0.
+That HA release requires aiohttp 3.11.13, subsequently yanked for a regression.
+The explicit pin reproduces the historical release only in the isolated test
+environment. Current development tests use their own reference requirements.
+
+```bash
+python3.13 -m venv .venv-test-2025
+. .venv-test-2025/bin/activate
+python -m pip install -r requirements_test_2025.txt
+PYTHONPATH="$QNAP_CLIENT_SOURCE:$PWD" python -m pytest -q
+```
+
+Firmware snapshots use separate HA 2025.3 and reference profiles because HA's
+state attributes and their serialization differ between releases. Both
+profiles compare the complete recorded states. Snapshot checks remain enabled.
+
+The final assisted-branch matrix passed the same 86 tests on each version.
+
+| HA | Python | Result |
+| --- | --- | --- |
+| 2025.3.0 | 3.13.18 | 86 tests and two snapshots passed |
+| 2026.10.4 | 3.14.10 | 86 tests, four subtests and two snapshots passed |
+
+These are the same cases executed against two HA releases. The earlier
+44-test result belongs to the power-buttons candidate. The new cases cover
+real native-flow coordination, guided UI, consent, concurrent duplicates,
+partial creation, optional discovery failures, reversible preferences,
+disabled/removed/renamed entities, cold startup and automatic monitoring
+recovery. A test also edits network settings through native WOL Options and
+checks that the proxy uses them while QNAP retains only association identities.
+
+Offline startup still waits for one bounded QTS connection attempt, up to the
+configured timeout, before exposing the saved WOL controls. Adding an
+association in Options while QNAP is in setup retry schedules a reload of that
+enabled QNAP entry. Native entries keep their own enable/disable settings.
+The full-tree Ruff check retains the two inherited switch directives described
+above. The current focused Hassfest validators report zero errors. Browser,
+physical-interface capability and real network/device acceptance remain pending.
 
 ## Prepare a dedicated workbench
 
@@ -107,7 +160,7 @@ git -c core.autocrlf=false clone --single-branch --branch feat/qts-power-api-pr 
   https://github.com/AVidal88/qnap-python-client.git "$QNAP_DEV_ROOT/client"
 git -c core.autocrlf=false -C "$QNAP_DEV_ROOT/client" checkout --detach "$QNAP_CLIENT_REVISION"
 
-git -c core.autocrlf=false clone --single-branch --branch feat/qts-power-buttons \
+git -c core.autocrlf=false clone --single-branch --branch feat/native-wol-assistant \
   https://github.com/AVidal88/qnap-home-assistant.git "$QNAP_DEV_ROOT/integration"
 git -c core.autocrlf=false -C "$QNAP_DEV_ROOT/integration" checkout --detach "$QNAP_HA_REVISION"
 
@@ -244,10 +297,9 @@ monitoring recovery. CGI acceptance and physical observation remain separate
 results. The library clears its local SID after an energy attempt. HA therefore
 needs a tested recovery path that restores monitoring without repeating energy.
 
-Exercise permission rejection using an agreed account and coordinated test.
-Verify that allowed monitoring remains usable when power permission is denied.
-Record demonstrated rights per operation. Minimum privileges remain unverified
-and account creation belongs to the owner.
+Permission rejection remains covered offline. A real trial records permissions
+only for the account and operation actually authorized. Minimum privileges
+remain unverified and account creation belongs to the owner.
 
 ## Rollback
 

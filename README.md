@@ -21,11 +21,12 @@ Monitor your QNAP NAS directly from Home Assistant. Track CPU, memory, network, 
 ### Monitoring and power setup
 
 Follow the [getting-started guide](docs/getting-started.md) to configure QNAP
-monitoring and an optional native Wake on LAN button through the interface.
-This development branch adds Shutdown and Reboot buttons, setup documentation
-and optional WOL help. The buttons use the public methods in the library
-candidate. Their coordinated validation against a NAS inside Home Assistant
-remains pending.
+monitoring and optional native Wake on LAN through the interface.
+This experimental `feat/native-wol-assistant` branch adds consent-based WOL
+setup and a QNAP **Power on** button on top of the separate shutdown/reboot
+candidate `00ad474`. It uses the real native WOL config flow to reuse or create
+entries, and delegates power-on to their `button.press` action. Physical device
+and browser validation remain pending.
 
 Energy support currently requires the exact library candidate described in
 the development procedure. The manifest still names the existing published
@@ -34,8 +35,9 @@ requires a published client release containing energy support and a matching
 manifest update. Use the isolated development procedure for this candidate.
 
 The code's API-level minimum is Home Assistant **2025.3.0**, reflected in HACS.
-Functional validation at that minimum remains pending. Native WOL UI setup
-has been available since HA 2024.8. The QNAP integration functions independently
+The assisted flow and offline initialization are exercised in both HA 2025.3.0
+and 2026.10.4 using simulated QTS and the real native WOL flow and entities.
+Native WOL UI setup has been available since HA 2024.8. QNAP monitoring functions independently
 of whether a WOL entry is configured.
 
 Development deployment and rollback are documented in the
@@ -100,6 +102,20 @@ Most per-device sensors (drives, volumes, network interfaces) are **disabled by 
 Per-NIC sensors are created for each network interface reported by the NAS. Per-drive and per-volume sensors are similarly created for each drive and volume.
 
 ### Power buttons
+
+**Power on** invokes the explicitly associated native WOL buttons. During
+setup, confirm physical MACs, reuse existing entries and consent separately
+before each missing entry is created. QTS MAC discovery establishes candidates
+whose physical-port and WOL capability need confirmation. Network settings
+remain owned by native WOL. **Options** provides manual selection and reversible
+per-NAS suppression of suggestions.
+
+Saved WOL associations permit QNAP initialization with the NAS offline.
+Power on loads configured, enabled native targets and follows their registry
+identity through renames. Disabled, removed or unresolved targets make it
+unavailable until reviewed. QTS buttons and existing sensors retain their
+monitoring availability. Deferred sensor/container registration resumes when
+the first valid NAS data arrives. No packet is sent during setup.
 
 The NAS device exposes **Shut down** and **Reboot** configuration buttons.
 Each press authenticates an independent control client with the entry's
