@@ -8,6 +8,7 @@ from homeassistant.core import HomeAssistant
 from .coordinator import QnapConfigEntry, QnapCoordinator
 
 PLATFORMS: list[Platform] = [
+    Platform.BUTTON,
     Platform.SENSOR,
     Platform.SWITCH,
     Platform.UPDATE,
@@ -17,9 +18,13 @@ PLATFORMS: list[Platform] = [
 async def async_setup_entry(hass: HomeAssistant, config_entry: QnapConfigEntry) -> bool:
     """Set the config entry up."""
     coordinator = QnapCoordinator(hass, config_entry)
-    await coordinator.async_config_entry_first_refresh()
-    config_entry.runtime_data = coordinator
-    await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
+    try:
+        await coordinator.async_config_entry_first_refresh()
+        config_entry.runtime_data = coordinator
+        await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
+    except BaseException:
+        await coordinator.async_close()
+        raise
     return True
 
 
@@ -27,4 +32,7 @@ async def async_unload_entry(
     hass: HomeAssistant, config_entry: QnapConfigEntry
 ) -> bool:
     """Unload a config entry."""
-    return await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
+    if await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS):
+        await config_entry.runtime_data.async_close()
+        return True
+    return False

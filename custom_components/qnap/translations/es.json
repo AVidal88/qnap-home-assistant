@@ -1,0 +1,76 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Conectar el NAS QNAP",
+        "description": "Conectá tu NAS QNAP para monitoreo y control de energía. El encendido remoto es opcional. Después de completar el alta, podés [configurar Wake on LAN de Home Assistant]({wake_on_lan_url}).",
+        "data": {
+          "host": "Host",
+          "username": "Usuario",
+          "password": "Contraseña",
+          "port": "Puerto",
+          "ssl": "Usar HTTPS",
+          "verify_ssl": "Verificar certificado SSL"
+        },
+        "data_description": {
+          "host": "Nombre de host o dirección IP del NAS QNAP."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigurar la conexión QNAP",
+        "description": "Actualizá la conexión del NAS QNAP. El encendido remoto es opcional. Después de guardar, podés [configurar Wake on LAN de Home Assistant]({wake_on_lan_url}).",
+        "data": {
+          "host": "Host",
+          "username": "Usuario",
+          "password": "Contraseña",
+          "port": "Puerto",
+          "ssl": "Usar HTTPS",
+          "verify_ssl": "Verificar certificado SSL"
+        },
+        "data_description": {
+          "host": "Nombre de host o dirección IP del NAS QNAP."
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Autenticación incorrecta",
+      "cannot_connect": "No se pudo conectar",
+      "unknown": "Error inesperado"
+    },
+    "abort": {
+      "already_configured": "El dispositivo ya está configurado",
+      "reconfigure_successful": "Se guardó la configuración",
+      "unique_id_mismatch": "El número de serie corresponde a otro NAS QNAP"
+    }
+  },
+  "entity": {
+    "button": {
+      "shutdown": {
+        "name": "Apagar"
+      },
+      "reboot": {
+        "name": "Reiniciar"
+      }
+    }
+  },
+  "exceptions": {
+    "power_in_progress": {
+      "message": "Hay una solicitud de energía en curso. Esperá su resultado antes de realizar otra acción."
+    },
+    "authentication_failed": {
+      "message": "Falló la autenticación QTS. Revisá la configuración de conexión QNAP. La acción no se reintentó."
+    },
+    "permission_denied": {
+      "message": "QTS denegó el permiso para esta acción de energía. Los permisos de monitoreo pueden ser distintos."
+    },
+    "power_rejected": {
+      "message": "QTS rechazó la solicitud de energía. Revisá los permisos y el estado del NAS antes de realizar otra acción."
+    },
+    "power_outcome_unknown": {
+      "message": "Se desconoce el resultado de la solicitud de energía. Comprobá el NAS antes de realizar otra acción. La solicitud no se reintentó."
+    },
+    "power_failed": {
+      "message": "Falló la solicitud de energía. Revisá la conexión QNAP y el estado del NAS antes de realizar otra acción. La solicitud no se reintentó."
+    }
+  }
+}

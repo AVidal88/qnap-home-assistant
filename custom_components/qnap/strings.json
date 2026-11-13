@@ -23,7 +23,7 @@
         "data_description": {
           "host": "The hostname or IP address of your QNAP device."
         },
-        "description": "Update the connection settings for your QNAP NAS.",
+        "description": "Update the connection settings for your QNAP NAS. Remote power-on is optional. After saving, you can [configure Home Assistant's built-in Wake on LAN]({wake_on_lan_url}).",
         "title": "Reconfigure QNAP connection"
       },
       "user": {
@@ -38,7 +38,7 @@
         "data_description": {
           "host": "The hostname or IP address of your QNAP device."
         },
-        "description": "This sensor allows getting various statistics from your QNAP NAS.",
+        "description": "Connect to your QNAP NAS for monitoring and power control. Remote power-on is optional. After completing QNAP setup, you can [configure Home Assistant's built-in Wake on LAN]({wake_on_lan_url}).",
         "title": "Connect to the QNAP device"
       }
     }
@@ -90,6 +90,34 @@
       "volume_size_used": {
         "name": "Used space ({monitor_device})"
       }
+    },
+    "button": {
+      "shutdown": {
+        "name": "Shut down"
+      },
+      "reboot": {
+        "name": "Reboot"
+      }
+    }
+  },
+  "exceptions": {
+    "power_in_progress": {
+      "message": "A power request is already in progress. Wait for its result before taking another action."
+    },
+    "authentication_failed": {
+      "message": "QTS authentication failed. Check the QNAP connection settings. This action was not retried."
+    },
+    "permission_denied": {
+      "message": "QTS denied permission for this power action. Monitoring permissions may differ."
+    },
+    "power_rejected": {
+      "message": "QTS rejected the power request. Check the account permissions and the NAS status before taking another action."
+    },
+    "power_outcome_unknown": {
+      "message": "The power request outcome is unknown. Check the NAS before taking another action. This request was not retried."
+    },
+    "power_failed": {
+      "message": "The power request failed. Check the QNAP connection and NAS status before taking another action. This request was not retried."
     }
   }
 }

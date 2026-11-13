@@ -25,6 +25,7 @@ from .const import (
     DEFAULT_TIMEOUT,
     DEFAULT_VERIFY_SSL,
     DOMAIN,
+    WAKE_ON_LAN_CONFIG_FLOW_URL,
 )
 
 DATA_SCHEMA = vol.Schema(
@@ -95,6 +96,7 @@ class QnapConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=self.add_suggested_values_to_schema(DATA_SCHEMA, user_input),
             errors=errors,
+            description_placeholders={"wake_on_lan_url": WAKE_ON_LAN_CONFIG_FLOW_URL},
         )
 
     async def async_step_reconfigure(
@@ -125,4 +127,5 @@ class QnapConfigFlow(ConfigFlow, domain=DOMAIN):
                 suggested_values,
             ),
             errors=errors,
+            description_placeholders={"wake_on_lan_url": WAKE_ON_LAN_CONFIG_FLOW_URL},
         )

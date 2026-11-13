@@ -5,15 +5,13 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from homeassistant.const import (
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
 )
 from homeassistant.core import HomeAssistant
-
-from tests.common import MockConfigEntry
-
 
 # ---------------------------------------------------------------------------
 # Drive temperature sensor
@@ -26,23 +24,14 @@ async def test_drive_temp_sensor_none_returns_unknown(
     mock_qnap_client: MagicMock,
     mock_config_entry: MockConfigEntry,
 ) -> None:
-    """Drive temp sensor must return None (unknown), NOT 0, when temp_c is None."""
-    mock_qnap_client.get_smart_disk_health.return_value = {
-        "HDD 1": {
-            "health": "good",
-            "temp_c": None,
-            "drive_number": "0",
-            "model": "TOSHIBA HDWD110",
-            "serial": "X8ABC12345",
-            "type": "HDD",
-        }
-    }
+    """An unavailable drive temperature remains unknown."""
+    mock_qnap_client.get_all.return_value.drives[0].temperature = None
 
     mock_config_entry.add_to_hass(hass)
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
     await hass.async_block_till_done()
 
-    state = hass.states.get("sensor.test_nas_drive_hdd_1_temperature")
+    state = hass.states.get("sensor.test_nas_drive_0_temperature")
     assert state is not None
     assert state.state in (STATE_UNKNOWN, STATE_UNAVAILABLE), (
         f"Expected unknown/unavailable for None temp, got: {state.state!r}"
@@ -56,23 +45,14 @@ async def test_drive_temp_sensor_with_value(
     mock_qnap_client: MagicMock,
     mock_config_entry: MockConfigEntry,
 ) -> None:
-    """Drive temp sensor returns the integer temperature when temp_c is set."""
-    mock_qnap_client.get_smart_disk_health.return_value = {
-        "HDD 1": {
-            "health": "good",
-            "temp_c": 38,
-            "drive_number": "0",
-            "model": "TOSHIBA HDWD110",
-            "serial": "X8ABC12345",
-            "type": "HDD",
-        }
-    }
+    """Drive temperature exposes the value from the public client model."""
+    mock_qnap_client.get_all.return_value.drives[0].temperature = 38
 
     mock_config_entry.add_to_hass(hass)
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
     await hass.async_block_till_done()
 
-    state = hass.states.get("sensor.test_nas_drive_hdd_1_temperature")
+    state = hass.states.get("sensor.test_nas_drive_0_temperature")
     assert state is not None
     assert state.state == "38"
 
@@ -88,11 +68,13 @@ async def test_network_sensor_nic_missing_from_bandwidth(
     mock_qnap_client: MagicMock,
     mock_config_entry: MockConfigEntry,
 ) -> None:
-    """Network tx/rx sensors return None when NIC absent from bandwidth data."""
-    mock_qnap_client.get_bandwidth.return_value = {}
-
+    """Existing bandwidth sensors become unknown when their interface disappears."""
     mock_config_entry.add_to_hass(hass)
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    mock_qnap_client.get_all.return_value.network_interfaces = []
+    await mock_config_entry.runtime_data.async_request_refresh()
     await hass.async_block_till_done()
 
     tx_state = hass.states.get("sensor.test_nas_eth0_upload")

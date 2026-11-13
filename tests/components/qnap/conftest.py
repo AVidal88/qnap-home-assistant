@@ -1,18 +1,26 @@
-"""Setup the QNAP tests."""
+"""Set up QNAP tests with the asynchronous public client models."""
 
 from collections.abc import Generator
-from typing import Any
+import json
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-from homeassistant.components.qnap.const import (
-    DEFAULT_PORT,
-    DEFAULT_SSL,
-    DEFAULT_TIMEOUT,
-    DEFAULT_VERIFY_SSL,
-    DOMAIN,
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.syrupy import HomeAssistantSnapshotExtension
+from qnap_client.models import (
+    CpuStats,
+    DriveHealth,
+    FirmwareUpdate,
+    MemoryStats,
+    NasData,
+    NetworkInterface,
+    SystemHealth,
+    SystemInfo,
+    VolumeStats,
 )
+from syrupy.assertion import SnapshotAssertion
+
 from homeassistant.const import (
     CONF_HOST,
     CONF_PASSWORD,
@@ -23,21 +31,110 @@ from homeassistant.const import (
     CONF_VERIFY_SSL,
 )
 
-from tests.common import MockConfigEntry, load_fixture
+from custom_components.qnap.const import (
+    DEFAULT_PORT,
+    DEFAULT_SSL,
+    DEFAULT_TIMEOUT,
+    DEFAULT_VERIFY_SSL,
+    DOMAIN,
+)
 
-TEST_HOST = "1.2.3.4"
-TEST_USERNAME = "admin"
-TEST_PASSWORD = "password"
+TEST_HOST = "192.0.2.10"
+TEST_USERNAME = "test-user"
+TEST_PASSWORD = "test-password"
 TEST_NAS_NAME = "Test NAS"
 TEST_SERIAL = "QX1234567"
 INSTALLED_VERSION = "5.1.0.2548"
 
 
-def _get_fixture_data() -> dict[str, Any]:
-    """Load the canonical QNAP coordinator fixture data."""
-    import json
+@pytest.fixture
+def snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
+    """Use stable Home Assistant serialization and the existing snapshots directory."""
+    return snapshot.use_extension(HomeAssistantSnapshotExtension)
 
-    return json.loads(load_fixture("qnap_data.json", DOMAIN))
+
+@pytest.fixture
+def entity_registry_enabled_by_default() -> Generator[None]:
+    """Enable optional sensors while exercising their entity states."""
+    with patch(
+        "homeassistant.helpers.entity.Entity.entity_registry_enabled_default", True
+    ):
+        yield
+
+
+@pytest.fixture
+def qnap_data() -> NasData:
+    """Translate the existing synthetic fixture into public client models."""
+    fixture_path = Path(__file__).parent / "fixtures" / "qnap_data.json"
+    fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+    stats = fixture["system_stats"]
+    system = stats["system"]
+    memory = stats["memory"]
+    uptime = stats["uptime"]
+    return NasData(
+        system_info=SystemInfo(
+            model=system["model"],
+            name=system["name"],
+            serial_number=system["serial_number"],
+            firmware_version=stats["firmware"]["version"],
+            uptime_seconds=(
+                uptime["days"] * 86400
+                + uptime["hours"] * 3600
+                + uptime["minutes"] * 60
+                + uptime["seconds"]
+            ),
+            system_temp=system["temp_c"],
+        ),
+        system_health=SystemHealth(status=fixture["system_health"]),
+        cpu=CpuStats(
+            usage_percent=stats["cpu"]["usage_percent"],
+            cpu_temp=stats["cpu"]["temp_c"],
+        ),
+        memory=MemoryStats(
+            total_mb=memory["total"],
+            free_mb=memory["free"],
+            used_mb=memory["total"] - memory["free"],
+        ),
+        network_interfaces=[
+            NetworkInterface(
+                name=name,
+                mac=interface["mac"],
+                ip=interface["ip"],
+                rx_bytes_per_sec=fixture["bandwidth"][name]["rx"],
+                tx_bytes_per_sec=fixture["bandwidth"][name]["tx"],
+                link_status=interface["link_status"],
+                mask=interface["mask"],
+                max_speed=interface["max_speed"],
+                rx_packets=interface["rx_packets"],
+                tx_packets=interface["tx_packets"],
+                err_packets=interface["err_packets"],
+            )
+            for name, interface in stats["nics"].items()
+        ],
+        drives=[
+            DriveHealth(
+                drive_number=int(drive["drive_number"]),
+                model=drive["model"],
+                health=drive["health"],
+                temperature=drive["temp_c"],
+            )
+            for drive in fixture["smart_drive_health"].values()
+        ],
+        volumes=[
+            VolumeStats(
+                name=name,
+                total_bytes=volume["total_size"],
+                free_bytes=volume["free_size"],
+                used_bytes=volume["total_size"] - volume["free_size"],
+                status="Ready",
+            )
+            for name, volume in fixture["volumes"].items()
+        ],
+        firmware=FirmwareUpdate(
+            current_version=stats["firmware"]["version"],
+            latest_version=fixture["firmware_update"],
+        ),
+    )
 
 
 @pytest.fixture
@@ -45,6 +142,7 @@ def mock_config_entry() -> MockConfigEntry:
     """Return a mock QNAP config entry."""
     return MockConfigEntry(
         domain=DOMAIN,
+        title=TEST_NAS_NAME,
         unique_id=TEST_SERIAL,
         data={
             CONF_HOST: TEST_HOST,
@@ -59,44 +157,46 @@ def mock_config_entry() -> MockConfigEntry:
 
 
 @pytest.fixture
-def mock_qnap_client() -> Generator[MagicMock]:
-    """Mock a QNAP QNAPStats client.
-
-    Patches QNAPStats in the coordinator module and pre-loads all API
-    methods with data from the canonical JSON fixture file.
-    """
-    fixture = _get_fixture_data()
+def mock_container_station() -> Generator[MagicMock]:
+    """Keep optional Container Station requests offline."""
     with patch(
-        "homeassistant.components.qnap.coordinator.QNAPStats",
-        autospec=True,
+        "custom_components.qnap.coordinator.ContainerStationClient", autospec=True
     ) as mock_class:
         client = mock_class.return_value
-        client.get_system_stats.return_value = fixture["system_stats"]
-        client.get_system_health.return_value = fixture["system_health"]
-        client.get_smart_disk_health.return_value = fixture["smart_drive_health"]
-        client.get_volumes.return_value = fixture["volumes"]
-        client.get_bandwidth.return_value = fixture["bandwidth"]
-        client.get_firmware_update.return_value = fixture["firmware_update"]
+        client.get_containers.return_value = []
+        yield client
+
+
+@pytest.fixture
+def mock_qnap_client(
+    qnap_data: NasData, mock_container_station: MagicMock
+) -> Generator[MagicMock]:
+    """Mock the coordinator's asynchronous public QnapClient."""
+    with patch(
+        "custom_components.qnap.coordinator.QnapClient", autospec=True
+    ) as mock_class:
+        client = mock_class.return_value
+        client.get_all.return_value = qnap_data
+        client.get_system_info.return_value = qnap_data.system_info
         yield client
 
 
 @pytest.fixture
 def mock_setup_entry() -> Generator[MagicMock]:
-    """Override async_setup_entry."""
+    """Override async_setup_entry during config flow tests."""
     with patch(
-        "homeassistant.components.qnap.async_setup_entry", return_value=True
+        "custom_components.qnap.async_setup_entry", return_value=True
     ) as mock_setup_entry:
         yield mock_setup_entry
 
 
 @pytest.fixture
-def qnap_connect() -> Generator[MagicMock]:
-    """Mock qnap connection (config flow only)."""
+def qnap_connect(qnap_data: NasData) -> Generator[MagicMock]:
+    """Mock the public client used by config flow validation."""
     with patch(
-        "homeassistant.components.qnap.config_flow.QNAPStats", autospec=True
-    ) as host_mock_class:
-        host_mock = host_mock_class.return_value
-        host_mock.get_system_stats.return_value = {
-            "system": {"serial_number": TEST_SERIAL, "name": TEST_NAS_NAME}
-        }
-        yield host_mock
+        "custom_components.qnap.config_flow.QnapClient", autospec=True
+    ) as mock_class:
+        client = mock_class.return_value
+        client.__aenter__.return_value = client
+        client.get_system_info.return_value = qnap_data.system_info
+        yield client
