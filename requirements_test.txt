@@ -1,3 +1,6 @@
 # Python 3.14. This helper pins Home Assistant 2026.10.4 and its test dependencies.
 pytest-homeassistant-custom-component==0.13.375
 ruff==0.17.4
+# Native WOL's own requirement, used only by the integration test harness.
+wakeonlan==3.3.0
+xmltodict==1.0.4

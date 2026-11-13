@@ -20,6 +20,7 @@ from qnap_client.models import (
     VolumeStats,
 )
 from syrupy.assertion import SnapshotAssertion
+from syrupy.location import PyTestLocation
 
 from homeassistant.const import (
     CONF_HOST,
@@ -29,6 +30,8 @@ from homeassistant.const import (
     CONF_TIMEOUT,
     CONF_USERNAME,
     CONF_VERIFY_SSL,
+    MAJOR_VERSION,
+    MINOR_VERSION,
 )
 
 from custom_components.qnap.const import (
@@ -47,9 +50,20 @@ TEST_SERIAL = "QX1234567"
 INSTALLED_VERSION = "5.1.0.2548"
 
 
+class HomeAssistant2025SnapshotExtension(HomeAssistantSnapshotExtension):
+    """Keep the minimum-release state representation separate from reference HA."""
+
+    @classmethod
+    def dirname(cls, *, test_location: PyTestLocation) -> str:
+        """Use a sibling directory so profiles do not discover each other's files."""
+        return str(Path(test_location.filepath).parent / "snapshots_ha_2025_3")
+
+
 @pytest.fixture
 def snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
-    """Use stable Home Assistant serialization and the existing snapshots directory."""
+    """Assert complete states against snapshots for the tested HA release."""
+    if (MAJOR_VERSION, MINOR_VERSION) == (2025, 3):
+        return snapshot.use_extension(HomeAssistant2025SnapshotExtension)
     return snapshot.use_extension(HomeAssistantSnapshotExtension)
 
 

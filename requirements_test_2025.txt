@@ -1,0 +1,7 @@
+# Isolated compatibility harness for Python 3.13 and HA 2025.3.0.
+pytest-homeassistant-custom-component==0.13.221
+# HA 2025.3.0 pins this subsequently yanked version. Test environment only.
+aiohttp==3.11.13
+# Native WOL's requirement in that HA release.
+wakeonlan==2.1.0
+xmltodict==1.0.4
