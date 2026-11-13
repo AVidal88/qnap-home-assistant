@@ -18,6 +18,30 @@ Monitor your QNAP NAS directly from Home Assistant. Track CPU, memory, network, 
 
 ## 📦 Installation
 
+### Monitoring and power setup
+
+Follow the [getting-started guide](docs/getting-started.md) to configure QNAP
+monitoring and an optional native Wake on LAN button through the interface.
+This development branch adds Shutdown and Reboot buttons, setup documentation
+and optional WOL help. The buttons use the public methods in the library
+candidate. Their coordinated validation against a NAS inside Home Assistant
+remains pending.
+
+Energy support currently requires the exact library candidate described in
+the development procedure. The manifest still names the existing published
+`qnap-client==1.1.0`, whose released code lacks these methods. Distribution
+requires a published client release containing energy support and a matching
+manifest update. Use the isolated development procedure for this candidate.
+
+The code's API-level minimum is Home Assistant **2025.3.0**, reflected in HACS.
+Functional validation at that minimum remains pending. Native WOL UI setup
+has been available since HA 2024.8. The QNAP integration functions independently
+of whether a WOL entry is configured.
+
+Development deployment and rollback are documented in the
+[isolated testing procedure](docs/development-testing.md). It identifies the
+candidate library separately from the release needed for distribution.
+
 ### HACS (Recommended)
 
 1. Open HACS in Home Assistant
@@ -41,11 +65,11 @@ The integration uses a UI config flow — no YAML needed.
 | Field | Default | Description |
 |---|---|---|
 | Host | — | Hostname or IP address of your QNAP NAS |
-| Username | — | QTS admin account username |
-| Password | — | QTS admin account password |
+| Username | — | QTS account with permissions for the features you want to use |
+| Password | — | That account's password, entered locally in Home Assistant |
 | Port | 8080 | QTS web interface port |
 | Enable SSL | Off | Use HTTPS instead of HTTP |
-| Verify SSL certificate | On | Validate the SSL cert (disable for self-signed certs) |
+| Verify SSL certificate | On | Validate the certificate chain and server identity. HTTPS is selected independently. |
 
 To update your settings later, go to **Settings → Devices & Services**, find the QNAP integration, and click **Reconfigure**.
 
@@ -75,6 +99,25 @@ Most per-device sensors (drives, volumes, network interfaces) are **disabled by 
 
 Per-NIC sensors are created for each network interface reported by the NAS. Per-drive and per-volume sensors are similarly created for each drive and volume.
 
+### Power buttons
+
+The NAS device exposes **Shut down** and **Reboot** configuration buttons.
+Each press authenticates an independent control client with the entry's
+connection settings and invokes one public library method. Power requests
+have no automatic retries. A concurrent press is rejected while another
+power request is in progress.
+
+A successful press records QTS CGI acceptance. Completion of shutdown or
+reboot is observed separately. An uncertain result asks the user to check
+the NAS before another action. Permission rejection affects the requested
+action independently of monitoring. Both buttons follow the monitoring
+coordinator's availability and become unavailable when a poll fails.
+Monitoring resumes through normal read-only polling after connectivity and
+authentication recover. Physical HA recovery still requires validation.
+
+Optional remote power-on uses Home Assistant's native Wake on LAN button.
+The [setup guide](docs/getting-started.md) explains the complete UI workflow.
+
 ### Firmware Update
 
 The integration registers a **firmware update entity** that appears in HA's native update dashboard (**Settings → Updates**). When QNAP releases new firmware, the entity changes state and you can be notified via standard HA update notifications. The entity is **read-only** — it tells you an update is available, but firmware installation must be done through the QNAP web UI.
@@ -93,7 +136,7 @@ Container switches use the Container Station v3 API (QTS Bearer token auth for r
 
 - **Fan speed sensors** — Fan data parsing implemented in `qnap-client`; accuracy against real hardware not yet verified.
 - **External drive sensors** — Supported in `qnap-client`; accuracy against real hardware not yet verified.
-- **MFA authentication** — Not supported. The QNAP CGI API does not expose a TOTP endpoint. Use a dedicated service account without MFA.
+- **Authentication** — The public client performs password login and reports pending second-factor challenges. The interactive adapter used in hardware trials is local test infrastructure. General MFA remains a separate contribution.
 - **Detailed system health** — The `status` sensor returns only a summary (`Ready`/`Warning`/`Error`). Granular per-subsystem detail is not available via the CGI API.
 - **Some QNAP models with unusual NIC naming** (e.g., QNAP-473e) — If a NIC key is missing from the API response, it is skipped gracefully without crashing setup.
 
