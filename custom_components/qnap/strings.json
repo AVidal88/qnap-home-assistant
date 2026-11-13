@@ -8,7 +8,11 @@
     "error": {
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
       "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "[%key:common::config_flow::error::unknown%]",
+      "invalid_mac": "Invalid MAC address",
+      "invalid_wol_entity": "Select an existing native WOL button",
+      "invalid_broadcast": "Invalid IPv4 broadcast address",
+      "wol_creation_failed": "The native WOL flow could not complete. Earlier entries were retained."
     },
     "step": {
       "reconfigure": {
@@ -23,7 +27,7 @@
         "data_description": {
           "host": "The hostname or IP address of your QNAP device."
         },
-        "description": "Update the connection settings for your QNAP NAS. Remote power-on is optional. After saving, you can [configure Home Assistant's built-in Wake on LAN]({wake_on_lan_url}).",
+        "description": "Configure the QNAP connection. You can then associate or create native WOL entries through the optional setup steps.",
         "title": "Reconfigure QNAP connection"
       },
       "user": {
@@ -38,8 +42,36 @@
         "data_description": {
           "host": "The hostname or IP address of your QNAP device."
         },
-        "description": "Connect to your QNAP NAS for monitoring and power control. Remote power-on is optional. After completing QNAP setup, you can [configure Home Assistant's built-in Wake on LAN]({wake_on_lan_url}).",
+        "description": "Configure the QNAP connection. You can then associate or create native WOL entries through the optional setup steps.",
         "title": "Connect to the QNAP device"
+      },
+      "wol": {
+        "title": "Power on with native Wake on LAN",
+        "description": "Select confirmed physical-port MACs and native WOL buttons belonging to this NAS. QTS does not establish physical-port or WOL capability. Disabled or deleted associations require review and remain inactive. You can revisit this setup in Options.",
+        "data": {
+          "wol_confirmed_macs": "Confirmed physical MACs",
+          "manual_macs": "Other physical MACs, comma-separated",
+          "wol_entities": "Additional existing native WOL buttons",
+          "create_missing": "Review creation of missing WOL entries",
+          "wol_suggestions_dismissed": "Do not suggest again for this NAS"
+        },
+        "data_description": {
+          "wol_confirmed_macs": "Selected MACs automatically reuse matching WOL buttons. To unlink an interface, deselect its MAC and remove its selected button.",
+          "wol_entities": "Additional selection. Removing a button here retains associations selected by MAC."
+        }
+      },
+      "wol_create": {
+        "title": "Create native WOL entry",
+        "description": "Confirmed MAC {mac}. Review this interface's broadcast and port. Check the confirmation to create it through native Wake on LAN. Leave it unchecked to skip. Entries already created are retained if you cancel a later step.",
+        "data": {
+          "broadcast_address": "Broadcast address",
+          "broadcast_port": "UDP port",
+          "confirm_create": "Create this WOL entry"
+        }
+      },
+      "wol_summary": {
+        "title": "WOL setup result",
+        "description": "Created {created}. Reused {reused}. Pending or disabled {unavailable}. Unconfigured or skipped {unconfigured}. Save to finish. Power on uses the saved associations when they are available."
       }
     }
   },
@@ -97,6 +129,9 @@
       },
       "reboot": {
         "name": "Reboot"
+      },
+      "wake": {
+        "name": "Power on"
       }
     }
   },
@@ -118,6 +153,50 @@
     },
     "power_failed": {
       "message": "The power request failed. Check the QNAP connection and NAS status before taking another action. This request was not retried."
+    },
+    "wake_unavailable": {
+      "message": "Review the WOL associations. A target is missing, disabled or not loaded."
+    },
+    "wake_failed": {
+      "message": "The native WOL action failed. Some targets may have received a packet. Check the NAS before pressing again."
+    }
+  },
+  "options": {
+    "step": {
+      "wol": {
+        "title": "Power on with native Wake on LAN",
+        "description": "Select confirmed physical-port MACs and native WOL buttons belonging to this NAS. QTS does not establish physical-port or WOL capability. Disabled or deleted associations require review and remain inactive. You can revisit this setup in Options.",
+        "data": {
+          "wol_confirmed_macs": "Confirmed physical MACs",
+          "manual_macs": "Other physical MACs, comma-separated",
+          "wol_entities": "Additional existing native WOL buttons",
+          "create_missing": "Review creation of missing WOL entries",
+          "wol_suggestions_dismissed": "Do not suggest again for this NAS"
+        },
+        "data_description": {
+          "wol_confirmed_macs": "Selected MACs automatically reuse matching WOL buttons. To unlink an interface, deselect its MAC and remove its selected button.",
+          "wol_entities": "Additional selection. Removing a button here retains associations selected by MAC."
+        }
+      },
+      "wol_create": {
+        "title": "Create native WOL entry",
+        "description": "Confirmed MAC {mac}. Review this interface's broadcast and port. Check the confirmation to create it through native Wake on LAN. Leave it unchecked to skip. Entries already created are retained if you cancel a later step.",
+        "data": {
+          "broadcast_address": "Broadcast address",
+          "broadcast_port": "UDP port",
+          "confirm_create": "Create this WOL entry"
+        }
+      },
+      "wol_summary": {
+        "title": "WOL setup result",
+        "description": "Created {created}. Reused {reused}. Pending or disabled {unavailable}. Unconfigured or skipped {unconfigured}. Save to finish. Power on uses the saved associations when they are available."
+      }
+    },
+    "error": {
+      "invalid_mac": "Invalid MAC address",
+      "invalid_wol_entity": "Select an existing native WOL button",
+      "invalid_broadcast": "Invalid IPv4 broadcast address",
+      "wol_creation_failed": "The native WOL flow could not complete. Earlier entries were retained."
     }
   }
 }

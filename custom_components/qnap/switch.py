@@ -6,7 +6,7 @@ import logging
 from typing import Any
 
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -27,12 +27,24 @@ async def async_setup_entry(
     uid = config_entry.unique_id
     assert uid is not None
 
-    async_add_entities(
-        QNAPContainerSwitch(
-            coordinator, uid, container.name, container.id, container.type
+    initialized = False
+
+    @callback
+    def add_when_available() -> None:
+        """Register container entities after recovering the first valid data."""
+        nonlocal initialized
+        if initialized or coordinator.data is None:
+            return
+        initialized = True
+        async_add_entities(
+            QNAPContainerSwitch(
+                coordinator, uid, container.name, container.id, container.type
+            )
+            for container in coordinator.data.containers
         )
-        for container in coordinator.data.containers
-    )
+
+    config_entry.async_on_unload(coordinator.async_add_listener(add_when_available))
+    add_when_available()
 
 
 class QNAPContainerSwitch(CoordinatorEntity[QnapCoordinator], SwitchEntity):

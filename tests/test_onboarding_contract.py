@@ -15,20 +15,19 @@ ASSISTANT_URL = (
 class OnboardingContractTests(unittest.TestCase):
     """Validate metadata without loading HA or sending a packet."""
 
-    def test_wol_help_is_optional_in_both_existing_forms(self):
+    def test_native_wol_wizard_is_optional_and_translated(self):
         for relative in (
             "custom_components/qnap/strings.json",
             "custom_components/qnap/translations/en.json",
         ):
             data = json.loads((ROOT / relative).read_text("utf-8"))
-            for step in ("user", "reconfigure"):
-                with self.subTest(file=relative, step=step):
-                    description = data["config"]["step"][step]["description"]
-                    self.assertIn("({wake_on_lan_url})", description)
-                    self.assertIn("optional", description)
-
-        constants = (ROOT / "custom_components/qnap/const.py").read_text("utf-8")
-        self.assertIn(ASSISTANT_URL, constants)
+            for flow_type in ("config", "options"):
+                with self.subTest(file=relative, flow=flow_type):
+                    steps = data[flow_type]["step"]
+                    self.assertIn("wol", steps)
+                    self.assertIn("wol_create", steps)
+                    self.assertIn("wol_summary", steps)
+                    self.assertIn("wol_suggestions_dismissed", steps["wol"]["data"])
 
     def test_wol_has_no_package_or_integration_dependency(self):
         manifest = json.loads(

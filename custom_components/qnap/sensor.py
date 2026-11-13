@@ -18,7 +18,7 @@ from homeassistant.const import (
     UnitOfInformation,
     UnitOfTemperature,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -187,37 +187,48 @@ async def async_setup_entry(
     coordinator = config_entry.runtime_data
     uid = config_entry.unique_id
     assert uid is not None
-    data: NasData = coordinator.data
+    initialized = False
 
-    sensors: list[QNAPSensor] = []
+    @callback
+    def add_when_available() -> None:
+        """Create monitored entities when the first valid NAS data arrives."""
+        nonlocal initialized
+        if initialized or coordinator.data is None:
+            return
+        initialized = True
+        data: NasData = coordinator.data
+        sensors: list[QNAPSensor] = []
+        sensors.extend(
+            QNAPSystemSensor(coordinator, description, uid)
+            for description in _SYSTEM_MON_COND
+        )
+        sensors.extend(
+            QNAPCPUSensor(coordinator, description, uid)
+            for description in _CPU_MON_COND
+        )
+        sensors.extend(
+            QNAPMemorySensor(coordinator, description, uid)
+            for description in _MEMORY_MON_COND
+        )
+        sensors.extend(
+            QNAPNetworkSensor(coordinator, description, uid, iface.name)
+            for iface in data.network_interfaces
+            for description in _NETWORK_MON_COND
+        )
+        sensors.extend(
+            QNAPDriveSensor(coordinator, description, uid, drive.drive_number)
+            for drive in data.drives
+            for description in _DRIVE_MON_COND
+        )
+        sensors.extend(
+            QNAPVolumeSensor(coordinator, description, uid, vol.name)
+            for vol in data.volumes
+            for description in _VOLUME_MON_COND
+        )
+        async_add_entities(sensors)
 
-    sensors.extend(
-        QNAPSystemSensor(coordinator, description, uid)
-        for description in _SYSTEM_MON_COND
-    )
-    sensors.extend(
-        QNAPCPUSensor(coordinator, description, uid) for description in _CPU_MON_COND
-    )
-    sensors.extend(
-        QNAPMemorySensor(coordinator, description, uid)
-        for description in _MEMORY_MON_COND
-    )
-    sensors.extend(
-        QNAPNetworkSensor(coordinator, description, uid, iface.name)
-        for iface in data.network_interfaces
-        for description in _NETWORK_MON_COND
-    )
-    sensors.extend(
-        QNAPDriveSensor(coordinator, description, uid, drive.drive_number)
-        for drive in data.drives
-        for description in _DRIVE_MON_COND
-    )
-    sensors.extend(
-        QNAPVolumeSensor(coordinator, description, uid, vol.name)
-        for vol in data.volumes
-        for description in _VOLUME_MON_COND
-    )
-    async_add_entities(sensors)
+    config_entry.async_on_unload(coordinator.async_add_listener(add_when_available))
+    add_when_available()
 
 
 class QNAPSensor(CoordinatorEntity[QnapCoordinator], SensorEntity):

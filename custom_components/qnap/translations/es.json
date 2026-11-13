@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Conectar el NAS QNAP",
-        "description": "Conectá tu NAS QNAP para monitoreo y control de energía. El encendido remoto es opcional. Después de completar el alta, podés [configurar Wake on LAN de Home Assistant]({wake_on_lan_url}).",
+        "description": "Configurá la conexión QNAP. Después podés asociar o crear entradas WOL nativas desde el asistente opcional.",
         "data": {
           "host": "Host",
           "username": "Usuario",
@@ -18,7 +18,7 @@
       },
       "reconfigure": {
         "title": "Reconfigurar la conexión QNAP",
-        "description": "Actualizá la conexión del NAS QNAP. El encendido remoto es opcional. Después de guardar, podés [configurar Wake on LAN de Home Assistant]({wake_on_lan_url}).",
+        "description": "Configurá la conexión QNAP. Después podés asociar o crear entradas WOL nativas desde el asistente opcional.",
         "data": {
           "host": "Host",
           "username": "Usuario",
@@ -30,12 +30,44 @@
         "data_description": {
           "host": "Nombre de host o dirección IP del NAS QNAP."
         }
+      },
+      "wol": {
+        "title": "Encendido con Wake on LAN",
+        "description": "Seleccioná las MAC de los puertos físicos confirmados y los botones WOL que pertenecen a este NAS. QTS no demuestra que una MAC sea física o compatible con WOL. Las entradas deshabilitadas o eliminadas requieren revisión y permanecen inactivas. La omisión es reversible desde Opciones.",
+        "data": {
+          "wol_confirmed_macs": "MAC físicas confirmadas",
+          "manual_macs": "Otras MAC físicas, separadas por comas",
+          "wol_entities": "Otros botones WOL nativos existentes",
+          "create_missing": "Revisar la creación de entradas WOL faltantes",
+          "wol_suggestions_dismissed": "No volver a sugerir para este NAS"
+        },
+        "data_description": {
+          "wol_confirmed_macs": "Las MAC seleccionadas reutilizan automáticamente sus botones WOL. Para desvincular una interfaz, desmarcá su MAC y quitá su botón del selector.",
+          "wol_entities": "Selección adicional. Quitar un botón aquí conserva las asociaciones elegidas mediante una MAC."
+        }
+      },
+      "wol_create": {
+        "title": "Crear entrada WOL nativa",
+        "description": "MAC confirmada {mac}. Revisá broadcast y puerto de esta interfaz. Marcá la confirmación para crear la entrada mediante Wake on LAN nativo. Dejala desmarcada para omitirla. Las entradas creadas se conservan si cancelás un paso posterior.",
+        "data": {
+          "broadcast_address": "Dirección de broadcast",
+          "broadcast_port": "Puerto UDP",
+          "confirm_create": "Crear esta entrada WOL"
+        }
+      },
+      "wol_summary": {
+        "title": "Resultado WOL",
+        "description": "Creadas {created}. Reutilizadas {reused}. Pendientes o deshabilitadas {unavailable}. Sin configurar u omitidas {unconfigured}. Guardá para finalizar. El botón Encender utiliza únicamente las asociaciones guardadas y disponibles."
       }
     },
     "error": {
       "invalid_auth": "Autenticación incorrecta",
       "cannot_connect": "No se pudo conectar",
-      "unknown": "Error inesperado"
+      "unknown": "Error inesperado",
+      "invalid_mac": "MAC inválida",
+      "invalid_wol_entity": "Seleccioná un botón WOL nativo existente",
+      "invalid_broadcast": "Dirección IPv4 inválida",
+      "wol_creation_failed": "No se pudo completar el flujo WOL. Las entradas anteriores se conservaron."
     },
     "abort": {
       "already_configured": "El dispositivo ya está configurado",
@@ -50,6 +82,9 @@
       },
       "reboot": {
         "name": "Reiniciar"
+      },
+      "wake": {
+        "name": "Encender"
       }
     }
   },
@@ -71,6 +106,50 @@
     },
     "power_failed": {
       "message": "Falló la solicitud de energía. Revisá la conexión QNAP y el estado del NAS antes de realizar otra acción. La solicitud no se reintentó."
+    },
+    "wake_unavailable": {
+      "message": "Revisá las asociaciones WOL. Una entidad está ausente, deshabilitada o sin cargar."
+    },
+    "wake_failed": {
+      "message": "Falló la acción WOL. Algunos destinos pueden haber recibido el paquete. Revisá el NAS antes de volver a pulsar."
+    }
+  },
+  "options": {
+    "step": {
+      "wol": {
+        "title": "Encendido con Wake on LAN",
+        "description": "Seleccioná las MAC de los puertos físicos confirmados y los botones WOL que pertenecen a este NAS. QTS no demuestra que una MAC sea física o compatible con WOL. Las entradas deshabilitadas o eliminadas requieren revisión y permanecen inactivas. La omisión es reversible desde Opciones.",
+        "data": {
+          "wol_confirmed_macs": "MAC físicas confirmadas",
+          "manual_macs": "Otras MAC físicas, separadas por comas",
+          "wol_entities": "Otros botones WOL nativos existentes",
+          "create_missing": "Revisar la creación de entradas WOL faltantes",
+          "wol_suggestions_dismissed": "No volver a sugerir para este NAS"
+        },
+        "data_description": {
+          "wol_confirmed_macs": "Las MAC seleccionadas reutilizan automáticamente sus botones WOL. Para desvincular una interfaz, desmarcá su MAC y quitá su botón del selector.",
+          "wol_entities": "Selección adicional. Quitar un botón aquí conserva las asociaciones elegidas mediante una MAC."
+        }
+      },
+      "wol_create": {
+        "title": "Crear entrada WOL nativa",
+        "description": "MAC confirmada {mac}. Revisá broadcast y puerto de esta interfaz. Marcá la confirmación para crear la entrada mediante Wake on LAN nativo. Dejala desmarcada para omitirla. Las entradas creadas se conservan si cancelás un paso posterior.",
+        "data": {
+          "broadcast_address": "Dirección de broadcast",
+          "broadcast_port": "Puerto UDP",
+          "confirm_create": "Crear esta entrada WOL"
+        }
+      },
+      "wol_summary": {
+        "title": "Resultado WOL",
+        "description": "Creadas {created}. Reutilizadas {reused}. Pendientes o deshabilitadas {unavailable}. Sin configurar u omitidas {unconfigured}. Guardá para finalizar. El botón Encender utiliza únicamente las asociaciones guardadas y disponibles."
+      }
+    },
+    "error": {
+      "invalid_mac": "MAC inválida",
+      "invalid_wol_entity": "Seleccioná un botón WOL nativo existente",
+      "invalid_broadcast": "Dirección IPv4 inválida",
+      "wol_creation_failed": "No se pudo completar el flujo WOL. Las entradas anteriores se conservaron."
     }
   }
 }

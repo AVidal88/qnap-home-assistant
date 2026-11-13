@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 
+from .const import CONF_WOL_ENTITIES, CONF_WOL_ENTRY_IDS
 from .coordinator import QnapConfigEntry, QnapCoordinator
 
 PLATFORMS: list[Platform] = [
@@ -19,7 +21,16 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: QnapConfigEntry) 
     """Set the config entry up."""
     coordinator = QnapCoordinator(hass, config_entry)
     try:
-        await coordinator.async_config_entry_first_refresh()
+        try:
+            await coordinator.async_config_entry_first_refresh()
+        except ConfigEntryNotReady:
+            if not (
+                config_entry.options.get(CONF_WOL_ENTITIES)
+                or config_entry.options.get(CONF_WOL_ENTRY_IDS)
+            ):
+                raise
+            # A persisted WOL association must load even while QTS is offline.
+            # Coordinator listeners keep read-only recovery polling scheduled.
         config_entry.runtime_data = coordinator
         await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
     except BaseException:

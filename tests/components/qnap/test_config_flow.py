@@ -12,7 +12,7 @@ from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
-from custom_components.qnap.const import DOMAIN, WAKE_ON_LAN_CONFIG_FLOW_URL
+from custom_components.qnap.const import DOMAIN
 
 from .conftest import TEST_NAS_NAME, TEST_SERIAL
 
@@ -31,15 +31,17 @@ async def test_user_flow_uses_public_client_and_existing_tls_settings(
     )
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "user"
-    assert result["description_placeholders"] == {
-        "wake_on_lan_url": WAKE_ON_LAN_CONFIG_FLOW_URL
-    }
     user_input = {
         key: value for key, value in mock_config_entry.data.items() if key != "timeout"
     }
     user_input.update(ssl=True, port=443, verify_ssl=verify_ssl)
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], user_input=user_input
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "wol"
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"wol_suggestions_dismissed": True}
     )
     await hass.async_block_till_done()
     assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -106,11 +108,11 @@ async def test_duplicate_device_is_aborted(
     assert result["reason"] == "already_configured"
 
 
-async def test_reconfigure_form_has_optional_native_wol_help(
+async def test_reconfigure_form_preserves_connection_settings(
     hass: HomeAssistant,
     mock_config_entry: MockConfigEntry,
 ) -> None:
-    """Both existing forms expose the stable native assistant link."""
+    """The connection form remains available independently of WOL options."""
     mock_config_entry.add_to_hass(hass)
     result = await hass.config_entries.flow.async_init(
         DOMAIN,
@@ -121,6 +123,3 @@ async def test_reconfigure_form_has_optional_native_wol_help(
     )
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "reconfigure"
-    assert result["description_placeholders"] == {
-        "wake_on_lan_url": WAKE_ON_LAN_CONFIG_FLOW_URL
-    }
