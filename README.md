@@ -28,11 +28,16 @@ candidate `00ad474`. It uses the real native WOL config flow to reuse or create
 entries, and delegates power-on to their `button.press` action. Physical device
 and browser validation remain pending.
 
-Energy support currently requires the exact library candidate described in
-the development procedure. The manifest still names the existing published
+For the coordinated live trial, use the ready-to-copy development ZIP and its
+[short installation and rollback guide](docs/quick-install.md). It includes the
+exact client candidate in a private component namespace, so an older globally
+installed package cannot take its place.
+
+The repository manifest still names the existing published
 `qnap-client==1.1.0`, whose released code lacks these methods. Distribution
 requires a published client release containing energy support and a matching
-manifest update. Use the isolated development procedure for this candidate.
+manifest update. The development ZIP's manifest and imports are adapted only
+inside that artifact. The library contribution keeps its own source and branch.
 
 The code's API-level minimum is Home Assistant **2025.3.0**, reflected in HACS.
 The assisted flow and offline initialization are exercised in both HA 2025.3.0
@@ -40,9 +45,9 @@ and 2026.10.4 using simulated QTS and the real native WOL flow and entities.
 Native WOL UI setup has been available since HA 2024.8. QNAP monitoring functions independently
 of whether a WOL entry is configured.
 
-Development deployment and rollback are documented in the
-[isolated testing procedure](docs/development-testing.md). It identifies the
-candidate library separately from the release needed for distribution.
+The [development testing notes](docs/development-testing.md) retain the earlier
+offline results and optional isolated deployment procedure. The short bundle
+guide is the direct installation route for the current coordinated trial.
 
 ### HACS (Recommended)
 

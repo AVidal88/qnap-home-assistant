@@ -1,5 +1,12 @@
 # Isolated development testing
 
+For the current coordinated live trial, use the [development bundle's short
+installation guide](quick-install.md). The bundle carries the exact client
+candidate and can be copied into the chosen HA instance with a folder backup
+for rollback. The historical test matrix and optional workbench below remain
+available as reference. Preparing another environment is outside the current
+delivery unless installation reveals a concrete dependency.
+
 This procedure prepares a separate Home Assistant test instance. Execution of
 the installation, account setup and real device actions requires coordination
 with the owner. The existing Home Assistant instance and its configuration
