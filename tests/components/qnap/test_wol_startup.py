@@ -6,11 +6,17 @@ import asyncio
 from datetime import timedelta
 from unittest.mock import MagicMock, call, patch
 
+import pytest
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
     async_fire_time_changed,
 )
-from qnap_client import QnapAuthError, QnapConnectionError
+from qnap_client import (
+    QnapAuthError,
+    QnapClient,
+    QnapConnectionError,
+    QnapPowerOutcomeUnknown,
+)
 
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
 from homeassistant.const import (
@@ -21,11 +27,17 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
-from custom_components.qnap.const import CONF_WOL_ENTITIES, CONF_WOL_ENTRY_IDS, DOMAIN
+from custom_components.qnap.const import (
+    CONF_WOL_ENTITIES,
+    CONF_WOL_ENTRY_IDS,
+    CONF_WOL_SUGGESTIONS_DISMISSED,
+    DOMAIN,
+)
 
 from .conftest import TEST_SERIAL
 
@@ -72,6 +84,93 @@ async def setup_qnap(
     }
     assert all(entities.values())
     return entities
+
+
+@pytest.mark.parametrize("outcome_unknown", [False, True])
+async def test_shutdown_and_monitoring_recovery_never_trigger_wol(
+    hass: HomeAssistant,
+    mock_qnap_client: MagicMock,
+    mock_config_entry: MockConfigEntry,
+    outcome_unknown: bool,
+) -> None:
+    """A shutdown press, errors and lifecycle updates never press native WOL."""
+    with patch("wakeonlan.send_magic_packet") as send_packet:
+        native_entry, native_entity = await create_native_wol(hass)
+        buttons = await setup_qnap(hass, mock_config_entry, native_entry, native_entity)
+        coordinator = mock_config_entry.runtime_data
+        assert coordinator._api is mock_qnap_client
+        initial_reads = mock_qnap_client.get_system_info.await_count
+        control = MagicMock(spec=QnapClient)
+        if outcome_unknown:
+            control.shutdown.side_effect = QnapPowerOutcomeUnknown(
+                "Power response interrupted", reason="connection_failure"
+            )
+
+        with patch(
+            "custom_components.qnap.coordinator.QnapClient", return_value=control
+        ) as factory:
+            if outcome_unknown:
+                with pytest.raises(HomeAssistantError) as raised:
+                    await hass.services.async_call(
+                        "button",
+                        "press",
+                        {"entity_id": buttons["shutdown"]},
+                        blocking=True,
+                    )
+                assert raised.value.translation_key == "power_outcome_unknown"
+            else:
+                await hass.services.async_call(
+                    "button", "press", {"entity_id": buttons["shutdown"]}, blocking=True
+                )
+
+            control.login.assert_awaited_once_with()
+            control.shutdown.assert_awaited_once_with()
+            control.close.assert_awaited_once_with(logout=False)
+            mock_qnap_client.close.assert_not_awaited()
+            assert mock_qnap_client.get_system_info.await_count == initial_reads
+            send_packet.assert_not_called()
+
+            mock_qnap_client.get_system_info.side_effect = QnapConnectionError(
+                "offline"
+            )
+            await coordinator.async_refresh()
+            await hass.async_block_till_done()
+            assert hass.states.get(buttons["shutdown"]).state == STATE_UNAVAILABLE
+            assert hass.states.get(buttons["wake"]).state != STATE_UNAVAILABLE
+
+            er.async_get(hass).async_update_entity(
+                native_entity.entity_id, new_entity_id="button.native_wake_renamed"
+            )
+            hass.config_entries.async_update_entry(
+                mock_config_entry,
+                options={
+                    **mock_config_entry.options,
+                    CONF_WOL_SUGGESTIONS_DISMISSED: True,
+                },
+            )
+            await hass.async_block_till_done()
+            send_packet.assert_not_called()
+
+            mock_qnap_client.get_system_info.side_effect = None
+            await coordinator.async_refresh()
+            await hass.async_block_till_done()
+            assert coordinator.last_update_success
+            assert coordinator._api is mock_qnap_client
+            assert hass.states.get(buttons["shutdown"]).state != STATE_UNAVAILABLE
+            assert hass.states.get(buttons["wake"]).state != STATE_UNAVAILABLE
+            assert await hass.config_entries.async_unload(mock_config_entry.entry_id)
+            await hass.async_block_till_done()
+            factory.assert_called_once()
+
+        control.shutdown.assert_awaited_once_with()
+        control.reboot.assert_not_awaited()
+        control.logout.assert_not_awaited()
+        control.close.assert_awaited_once_with(logout=False)
+        mock_qnap_client.shutdown.assert_not_awaited()
+        mock_qnap_client.reboot.assert_not_awaited()
+        mock_qnap_client.logout.assert_not_awaited()
+        mock_qnap_client.close.assert_awaited_once_with(logout=False)
+        send_packet.assert_not_called()
 
 
 async def test_cold_start_offline_loads_native_wol_and_proxy(
