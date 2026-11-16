@@ -5,13 +5,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from qnap_client import (
-    QnapAuthError,
-    QnapClient,
-    QnapConnectionError,
-    QnapError,
-    QnapTimeoutError,
-)
 import voluptuous as vol
 
 from homeassistant.config_entries import (
@@ -32,6 +25,13 @@ from homeassistant.const import (
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
 
+from ._vendor.qnap_client import (
+    QnapAuthError,
+    QnapClient,
+    QnapConnectionError,
+    QnapError,
+    QnapTimeoutError,
+)
 from .const import (
     CONF_WOL_CANDIDATES,
     CONF_WOL_ENTITIES,

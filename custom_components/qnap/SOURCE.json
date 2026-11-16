@@ -1,0 +1,45 @@
+{
+  "artifact": "QNAP HACS beta",
+  "version": "3.3.0-beta.1",
+  "integration_source_revision": "5ff53425b3c15dc565f782ef908433c5d2838bca",
+  "client_revision": "b2f467a7dc5899d748d901c1d7549436758429d6",
+  "client_namespace": "custom_components.qnap._vendor.qnap_client",
+  "source_bundle_sha256": "245ec37b6cd149506c65e97e89e65464f00db219fe4bbc3dd0e990b7c63ea708",
+  "client_source_sha256": {
+    "qnap_client/__init__.py": "26267c80dc9e4862c13a2c21ba05db05bb087db26cfa1edd6b1fc0f4fafe9bf3",
+    "qnap_client/client.py": "f859c066d77b3bcbebba369240fad5c0c3bf81cfb670940718adb5a340e7471b",
+    "qnap_client/container_station.py": "04ea010bc30c67f2295deadfb3a0336c939ce227a6b7c0fe9996b1d7e9b4e24b",
+    "qnap_client/exceptions.py": "65f642c901aef4c8457300bd3644630fa3f4ea082c2daff83c8e679ec886ce42",
+    "qnap_client/models.py": "59c5bcb88fdde5d9d20fea5230a6a3a5f517e46e382ba46dc0ec5346348af01b",
+    "LICENSE": "77b5a9adf7183fd86cb687df012114743fa90bff3fdef6040c2c02376ec6b806"
+  },
+  "component_files_sha256": {
+    "__init__.py": "4990b22e6c4efbc196f4c33ef23440a612943bf4a00af4686326bcd9e484d7aa",
+    "_vendor/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "_vendor/qnap_client/__init__.py": "26267c80dc9e4862c13a2c21ba05db05bb087db26cfa1edd6b1fc0f4fafe9bf3",
+    "_vendor/qnap_client/client.py": "f859c066d77b3bcbebba369240fad5c0c3bf81cfb670940718adb5a340e7471b",
+    "_vendor/qnap_client/container_station.py": "04ea010bc30c67f2295deadfb3a0336c939ce227a6b7c0fe9996b1d7e9b4e24b",
+    "_vendor/qnap_client/exceptions.py": "65f642c901aef4c8457300bd3644630fa3f4ea082c2daff83c8e679ec886ce42",
+    "_vendor/qnap_client/LICENSE": "77b5a9adf7183fd86cb687df012114743fa90bff3fdef6040c2c02376ec6b806",
+    "_vendor/qnap_client/models.py": "59c5bcb88fdde5d9d20fea5230a6a3a5f517e46e382ba46dc0ec5346348af01b",
+    "button.py": "a92086750cb53175b23fd5d650ae22d6ad377e19fb9066918db5a11474f09b53",
+    "config_flow.py": "6cde7c8f3bb492ff01b1776d246987fd7f445ce1734ca5948ff8f16646cf2081",
+    "const.py": "a4efe254beaaf7e85c0123671485c2445b05bdefde944722a0cf4d7ded5121ae",
+    "coordinator.py": "8c7561e35ab88499cf01f2044436523efc628bc4a3618524634bd644c5f989f4",
+    "manifest.json": "2108cf02f6750f907300534eeeac7c021c3c60510cb69121a3776b127267f455",
+    "sensor.py": "cfc7c7d3f4abc3512eefbca89a730269a0e3818e9d81d290f7e8866ea5a1080f",
+    "strings.json": "65e89d1bd23cc3eaa88ccb9e6d614fec283ee0f167de82fd1c4985ffc893cafc",
+    "switch.py": "05f0b3b026df5ae44bc5cf3094421105bdf32699b23672f6d7441405a6dc7f9a",
+    "translations/en.json": "240f588eb849c65a78d82cd17929eba0180b57e1989f2bd0531ae2cf38783974",
+    "translations/es.json": "4c6be6379c739b6f3887270993c56aba7a48b6f97acce155027d58a8c1900b72",
+    "update.py": "de4ea83b3fb41de232187ea2b29272d1f057fcd6a2ced8e51844fc3015bcd406",
+    "wol.py": "83e193b49f89d273c52798b82bebfd9550e6f3cc1fea5c25479c825cf1fcc70c",
+    "wol_flow.py": "59de8c148ba1bcfdf2d90d6f1cea638624a4ad84159fccf7b37d25274f450f94"
+  },
+  "distribution_changes": [
+    "flat HACS asset layout",
+    "beta manifest version",
+    "fork documentation and issue links",
+    "release metadata and provenance"
+  ]
+}

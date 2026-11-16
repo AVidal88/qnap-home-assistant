@@ -7,17 +7,6 @@ from datetime import timedelta
 import logging
 from typing import Literal
 
-from qnap_client import (
-    ContainerStationClient,
-    QnapAuthError,
-    QnapClient,
-    QnapError,
-    QnapPermissionError,
-    QnapPowerOutcomeUnknown,
-    QnapPowerRejectedError,
-)
-from qnap_client.models import NasData
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_HOST,
@@ -32,6 +21,16 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from ._vendor.qnap_client import (
+    ContainerStationClient,
+    QnapAuthError,
+    QnapClient,
+    QnapError,
+    QnapPermissionError,
+    QnapPowerOutcomeUnknown,
+    QnapPowerRejectedError,
+)
+from ._vendor.qnap_client.models import NasData
 from .const import (
     DEFAULT_PORT,
     DEFAULT_SSL,

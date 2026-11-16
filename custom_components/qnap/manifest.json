@@ -5,15 +5,15 @@
     "@disforw"
   ],
   "config_flow": true,
-  "documentation": "https://github.com/disforw/qnap",
+  "documentation": "https://github.com/AVidal88/qnap-home-assistant",
   "integration_type": "device",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/disforw/qnap/issues",
+  "issue_tracker": "https://github.com/AVidal88/qnap-home-assistant/issues",
   "loggers": [
-    "qnap_client"
+    "custom_components.qnap._vendor.qnap_client"
   ],
   "requirements": [
-    "qnap-client==1.1.0"
+    "xmltodict==1.0.4"
   ],
-  "version": "3.2.0"
+  "version": "3.3.0-beta.1"
 }

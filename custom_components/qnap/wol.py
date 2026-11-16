@@ -8,8 +8,6 @@ from ipaddress import IPv4Interface
 import re
 from typing import Literal
 
-from qnap_client.models import NetworkInterface
-
 from homeassistant.config_entries import SOURCE_USER, ConfigEntry
 from homeassistant.const import CONF_BROADCAST_ADDRESS, CONF_BROADCAST_PORT, CONF_MAC
 from homeassistant.core import HomeAssistant
@@ -17,6 +15,8 @@ from homeassistant.data_entry_flow import FlowResultType, InvalidData
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+
+from ._vendor.qnap_client.models import NetworkInterface
 
 WOL_DOMAIN = "wake_on_lan"
 

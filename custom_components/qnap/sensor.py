@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import logging
 
-from qnap_client.models import NasData
-
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -23,6 +21,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from ._vendor.qnap_client.models import NasData
 from .const import DOMAIN
 from .coordinator import QnapConfigEntry, QnapCoordinator
 
