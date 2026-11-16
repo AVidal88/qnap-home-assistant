@@ -26,6 +26,41 @@ remain under the owner's control.
 | Power buttons | Candidate `shutdown()` and `reboot()` button implementation, subject to the reviewed integration commit |
 | Reference test image | `ghcr.io/home-assistant/home-assistant:2026.11.1` |
 
+### Live HA shutdown observation, 2026-11-16
+
+The owner reported a shutdown press using the HACS release `3.3.0-beta.1`,
+distribution `f66000e`, on the TS-431P with QTS 5.2.11.3661. QTS logged shutdown
+starting at 16:03:21 and Network & Virtual Switch stopping at 16:03:32.
+At the next startup it logged an improper previous shutdown at 16:08:30,
+followed by system startup at 16:08:31. The cause of that startup remains
+unresolved. This HA trial records shutdown initiation and an improper closure
+detected at the next boot. The earlier Python trials retain separate evidence.
+
+The public release ZIP was downloaded again and matched SHA256
+`977c9f70f6c7c6e994dd0f0037021e61c1e16e98c1e5cc76ca76ec98c34fe38c`.
+Its vendored SDK matches `b2f467a`. The power POST construction matches the
+earlier Python snapshot and the official frontend. The examined normal
+shutdown path has browser-local preparation and continued access polling.
+The HA monitor uses an independent session and can continue polling during
+shutdown. A causal connection between those reads and improper closure remains
+unestablished.
+
+The focused regression adds an accepted and an uncertain shutdown outcome,
+then monitoring loss/recovery, registry and options callbacks, and unload.
+It checks a single shutdown invocation, independent sessions, local cleanup
+without logout, zero reboot calls and zero WOL emissions. Production code and
+the published beta retain their audited versions. CGI acknowledgement and
+clean physical completion remain separate observations.
+
+Post-incident checks against the extracted release passed 38 HA button,
+coordinator and WOL-startup cases, including the two new outcome cases.
+The included SDK passed 93 power/transport tests independently against a
+loopback server. Test imports were directed to the included SDK while keeping
+the extracted production files byte-identical. The first loopback invocation
+in the HA environment encountered its socket-blocking plugin during setup.
+The successful SDK run isolated the library plugins and allowed only loopback
+connections. Ruff, format and diff checks passed for the regression change.
+
 Record the exact integration commit from the delivery, along with both checkout
 hashes, before preparing an image. A branch name alone can move between reviews.
 Offline tests exercise the integration code with mocked QTS communication.
