@@ -1,0 +1,21 @@
+NAS icon attribution
+
+Icon: nas (network-attached-storage), Material Design Icons by Pictogrammers.
+Original icon author: Simran.
+Icon identifier: 001157C4-1AAA-41FF-B204-906ACDB427C3.
+Source revision: 2424e748e0cc63ab7b9c095a099b9fe239b737c0.
+
+Original SVG:
+https://github.com/Templarian/MaterialDesign/blob/2424e748e0cc63ab7b9c095a099b9fe239b737c0/svg/nas.svg
+Author metadata:
+https://github.com/Templarian/MaterialDesign/blob/2424e748e0cc63ab7b9c095a099b9fe239b737c0/meta.json
+Original licensing notice:
+https://github.com/Templarian/MaterialDesign/blob/2424e748e0cc63ab7b9c095a099b9fe239b737c0/LICENSE
+
+The original licensing notice is preserved in LICENSE-Pictogrammers.txt.
+The icon is distributed under Apache License 2.0. A full copy of that license
+is in LICENSE-APACHE-2.0.txt and applies to nas.svg, icon.png and icon@2x.png.
+
+The original nas.svg is preserved byte-for-byte. The PNG adaptations were
+rasterized at 256 and 512 pixels and colored blue (#1565C0) for the
+AVidal88/qnap-home-assistant fork. Their geometry follows the original SVG.

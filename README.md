@@ -83,3 +83,21 @@ HACS installation and removal behavior are documented in the
 [HACS dashboard guide](https://www.hacs.xyz/docs/use/repositories/dashboard/).
 The configured-integration warning is implemented in the
 [HACS removal menu](https://github.com/hacs/frontend/blob/main/src/components/hacs-repository-owerflow-menu.ts#L117).
+
+## Licenses and attribution
+
+The integration is distributed under the [MIT license](LICENSE), as explicitly
+declared in the upstream README in
+[disforw/qnap commit fb30dad](https://github.com/disforw/qnap/blob/fb30dad905f9a5127c601eb3ad1a31a7c97dc0cc/README.md).
+This distribution adds the standard license text and attributes the integration
+to disforw and contributors. The inspected upstream history contains the MIT
+declaration and its link to a missing license file.
+
+The included Python SDK retains its own original
+[MIT license and copyright notice](custom_components/qnap/_vendor/qnap_client/LICENSE).
+The generic NAS icon has separate Apache-2.0 terms and source attribution in
+[the brand notice](custom_components/qnap/brand/NOTICE.txt).
+
+The publication metadata corrections after `f66000e` apply to the distribution
+branch. The existing `3.3.0-beta.1` tag and release assets retain their original
+contents. Future packages can include the local brand assets from this branch.

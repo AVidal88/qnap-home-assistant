@@ -1,6 +1,9 @@
 {
   "domain": "qnap",
   "name": "QNAP",
+  "categories": [
+    "computers_network.nas_servers"
+  ],
   "codeowners": [
     "@disforw"
   ],

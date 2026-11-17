@@ -22,11 +22,17 @@
     "_vendor/qnap_client/container_station.py": "04ea010bc30c67f2295deadfb3a0336c939ce227a6b7c0fe9996b1d7e9b4e24b",
     "_vendor/qnap_client/exceptions.py": "65f642c901aef4c8457300bd3644630fa3f4ea082c2daff83c8e679ec886ce42",
     "_vendor/qnap_client/models.py": "59c5bcb88fdde5d9d20fea5230a6a3a5f517e46e382ba46dc0ec5346348af01b",
+    "brand/LICENSE-APACHE-2.0.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "brand/LICENSE-Pictogrammers.txt": "3bae6305bcaa6d10219b999f65c342034c2d40b1c0e8567fa08605e73ccba829",
+    "brand/NOTICE.txt": "2b057b08c64c73400e19c056e579c59883f24ef50ba5770b1fe2cb1283b5c81c",
+    "brand/icon.png": "cbdc5ff32e3e576dcca659945f97b05fda9aa93751d49138bbf9accd9ec6af3a",
+    "brand/icon@2x.png": "73964f43a8f9b9a1c6c7706fa404939df096ebd4384c8715ed5fe18502ef601c",
+    "brand/nas.svg": "6a8e189514c011b6cbfb8f717978a6103de621992465b30b257c9e2109e90257",
     "button.py": "a92086750cb53175b23fd5d650ae22d6ad377e19fb9066918db5a11474f09b53",
     "config_flow.py": "6cde7c8f3bb492ff01b1776d246987fd7f445ce1734ca5948ff8f16646cf2081",
     "const.py": "a4efe254beaaf7e85c0123671485c2445b05bdefde944722a0cf4d7ded5121ae",
     "coordinator.py": "8c7561e35ab88499cf01f2044436523efc628bc4a3618524634bd644c5f989f4",
-    "manifest.json": "7514998d292ae26cf0113cda9399b3240c29656d4568f5ff1a0abdb5a9ced54d",
+    "manifest.json": "662ed4ee3c965e608e8afb9818dfc4e79bbbe3588917b4e6dbf4292225b7678f",
     "sensor.py": "cfc7c7d3f4abc3512eefbca89a730269a0e3818e9d81d290f7e8866ea5a1080f",
     "strings.json": "65e89d1bd23cc3eaa88ccb9e6d614fec283ee0f167de82fd1c4985ffc893cafc",
     "switch.py": "05f0b3b026df5ae44bc5cf3094421105bdf32699b23672f6d7441405a6dc7f9a",
@@ -40,6 +46,8 @@
     "flat HACS asset layout",
     "beta manifest version",
     "fork documentation and issue links",
-    "release metadata and provenance"
-  ]
+    "release metadata and provenance",
+    "post-release HACS publication metadata and licensed local brand assets"
+  ],
+  "published_release_revision": "f66000e9027195c8385f026481fc997c83d1609e"
 }
