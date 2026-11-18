@@ -73,7 +73,12 @@ magic packet or power request.
 This beta uses the previously prepared development bundle. Distribution changes
 are the flattened asset, version, fork links and HACS metadata. The client source
 and its MIT license are preserved. `SOURCE.json` records source revisions and
-fingerprints. The beta declares `xmltodict==1.0.4`, and HA provides aiohttp.
+fingerprints. The published beta asset declares `xmltodict==1.0.4`.
+The distribution manifest and packaging template use `xmltodict>=1.0.4`
+so the dependency can follow Home Assistant updates. HA provides aiohttp.
+
+Hassfest reports the known warning `Domain collides with built-in core integration`.
+This fork retains the `qnap` domain to manage the existing QNAP entry and entities.
 
 The existing offline tests covered native WOL coordination and offline startup
 in HA 2025.3.0 and 2026.10.4. Live browser, network and NAS acceptance remain part

@@ -32,7 +32,7 @@
     "config_flow.py": "6cde7c8f3bb492ff01b1776d246987fd7f445ce1734ca5948ff8f16646cf2081",
     "const.py": "a4efe254beaaf7e85c0123671485c2445b05bdefde944722a0cf4d7ded5121ae",
     "coordinator.py": "8c7561e35ab88499cf01f2044436523efc628bc4a3618524634bd644c5f989f4",
-    "manifest.json": "662ed4ee3c965e608e8afb9818dfc4e79bbbe3588917b4e6dbf4292225b7678f",
+    "manifest.json": "4de5dbac7a5bd41683a456bed6fa51d1bac1a9350afdcaae3f9decde572966c1",
     "sensor.py": "cfc7c7d3f4abc3512eefbca89a730269a0e3818e9d81d290f7e8866ea5a1080f",
     "strings.json": "65e89d1bd23cc3eaa88ccb9e6d614fec283ee0f167de82fd1c4985ffc893cafc",
     "switch.py": "05f0b3b026df5ae44bc5cf3094421105bdf32699b23672f6d7441405a6dc7f9a",
@@ -47,7 +47,8 @@
     "beta manifest version",
     "fork documentation and issue links",
     "release metadata and provenance",
-    "post-release HACS publication metadata and licensed local brand assets"
+    "post-release HACS publication metadata and licensed local brand assets",
+    "xmltodict minimum version required by Hassfest"
   ],
   "published_release_revision": "f66000e9027195c8385f026481fc997c83d1609e"
 }

@@ -80,7 +80,7 @@ class DevelopmentBundleTests(unittest.TestCase):
                         )
                     self.assertEqual(bodies[0], bodies[1])
                 manifest = json.loads(archive.read(f"{COMPONENT_PATH}/manifest.json"))
-                self.assertEqual(manifest["requirements"], ["xmltodict==1.0.4"])
+                self.assertEqual(manifest["requirements"], ["xmltodict>=1.0.4"])
                 for name, digest in source["bundle_files_sha256"].items():
                     self.assertEqual(
                         hashlib.sha256(archive.read(name)).hexdigest(), digest

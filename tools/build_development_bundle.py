@@ -118,7 +118,7 @@ def build_bundle(
 
     manifest_path = f"{COMPONENT_PATH}/manifest.json"
     manifest = json.loads(files[manifest_path])
-    manifest["requirements"] = ["xmltodict==1.0.4"]
+    manifest["requirements"] = ["xmltodict>=1.0.4"]
     manifest["loggers"] = ["custom_components.qnap._vendor.qnap_client"]
     files[manifest_path] = (json.dumps(manifest, indent=2) + "\n").encode()
     files[f"{COMPONENT_PATH}/_vendor/__init__.py"] = b""

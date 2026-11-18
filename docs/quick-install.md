@@ -23,7 +23,7 @@ It requires Home Assistant 2025.3.0 or newer.
    and reload recovery. Power on becomes available when the selected native
    WOL targets are configured, enabled and loaded.
 
-HA resolves the bundle's `xmltodict==1.0.4` requirement through its normal
+HA resolves the generated bundle's `xmltodict>=1.0.4` requirement through its normal
 dependency handling. Native Wake on LAN retains its own requirements and
 network settings. Setup requests no NAS power action and sends no WOL packet.
 
@@ -74,8 +74,10 @@ artifact. Physical NAS behavior and browser presentation remain live checks.
 
 ## Rebuild the artifact
 
-From the integration checkout, with Python 3.12 or newer, run the following.
-The client checkout must contain the pinned revision above.
+From the unvendored integration checkout, with Python 3.12 or newer, run the
+following. The helper expects a component tree without an included SDK. The
+distribution branch retains its packaging template alongside the vendored
+component. The client checkout must contain the pinned revision above.
 
 ```powershell
 python .\tools\build_development_bundle.py --client-repo ..\python-qnap-power-pr --output ..\artifacts\qnap-assisted-wol-dev.zip
