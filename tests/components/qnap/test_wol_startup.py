@@ -32,6 +32,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
+from custom_components.qnap.button import QNAPWakeButton
 from custom_components.qnap.const import (
     CONF_WOL_ENTITIES,
     CONF_WOL_ENTRY_IDS,
@@ -84,6 +85,63 @@ async def setup_qnap(
     }
     assert all(entities.values())
     return entities
+
+
+async def test_wake_tracks_online_offline_transitions_without_sending_packets(
+    hass: HomeAssistant,
+    mock_qnap_client: MagicMock,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Confirmed QTS availability temporarily blocks wake and direct presses."""
+    with patch("wakeonlan.send_magic_packet") as send_packet:
+        native_entry, native_entity = await create_native_wol(hass)
+        buttons = await setup_qnap(hass, mock_config_entry, native_entry, native_entity)
+        coordinator = mock_config_entry.runtime_data
+        registry = er.async_get(hass)
+        registered_wake = registry.async_get(buttons["wake"])
+        assert registered_wake.disabled_by is None
+        assert coordinator.data is not None
+        assert coordinator.last_update_success
+        assert hass.states.get(buttons["wake"]).state == STATE_UNAVAILABLE
+        assert hass.states.get(native_entity.entity_id).state != STATE_UNAVAILABLE
+        assert hass.states.get(buttons["shutdown"]).state != STATE_UNAVAILABLE
+        assert hass.states.get(buttons["reboot"]).state != STATE_UNAVAILABLE
+
+        direct_button = QNAPWakeButton(mock_config_entry, TEST_SERIAL)
+        direct_button.hass = hass
+        with pytest.raises(HomeAssistantError) as raised:
+            await direct_button.async_press()
+        assert raised.value.translation_key == "wake_unavailable"
+        send_packet.assert_not_called()
+
+        mock_qnap_client.get_system_info.side_effect = QnapConnectionError("offline")
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
+        assert coordinator.data is not None
+        assert not coordinator.last_update_success
+        assert hass.states.get(buttons["wake"]).state != STATE_UNAVAILABLE
+        assert hass.states.get(buttons["shutdown"]).state == STATE_UNAVAILABLE
+        assert hass.states.get(buttons["reboot"]).state == STATE_UNAVAILABLE
+        send_packet.assert_not_called()
+
+        await hass.services.async_call(
+            "button", "press", {"entity_id": buttons["wake"]}, blocking=True
+        )
+        send_packet.assert_called_once_with(MAC)
+
+        mock_qnap_client.get_system_info.side_effect = None
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
+        assert coordinator.last_update_success
+        assert hass.states.get(buttons["wake"]).state == STATE_UNAVAILABLE
+        assert hass.states.get(buttons["shutdown"]).state != STATE_UNAVAILABLE
+        assert hass.states.get(buttons["reboot"]).state != STATE_UNAVAILABLE
+        assert registry.async_get(buttons["wake"]).id == registered_wake.id
+        assert registry.async_get(buttons["wake"]).disabled_by is None
+        assert native_entry.disabled_by is None
+        assert registry.async_get(native_entity.entity_id).disabled_by is None
+        assert hass.states.get(native_entity.entity_id).state != STATE_UNAVAILABLE
+        send_packet.assert_called_once_with(MAC)
 
 
 @pytest.mark.parametrize("outcome_unknown", [False, True])
@@ -157,7 +215,7 @@ async def test_shutdown_and_monitoring_recovery_never_trigger_wol(
             assert coordinator.last_update_success
             assert coordinator._api is mock_qnap_client
             assert hass.states.get(buttons["shutdown"]).state != STATE_UNAVAILABLE
-            assert hass.states.get(buttons["wake"]).state != STATE_UNAVAILABLE
+            assert hass.states.get(buttons["wake"]).state == STATE_UNAVAILABLE
             assert await hass.config_entries.async_unload(mock_config_entry.entry_id)
             await hass.async_block_till_done()
             factory.assert_called_once()
@@ -190,6 +248,7 @@ async def test_cold_start_offline_loads_native_wol_and_proxy(
         assert mock_config_entry.state is ConfigEntryState.LOADED
         assert native_entry.state is ConfigEntryState.LOADED
         assert not mock_config_entry.runtime_data.last_update_success
+        assert mock_config_entry.runtime_data.data is None
         assert all(
             not entity_id.startswith("button.none_") for entity_id in buttons.values()
         )
@@ -221,6 +280,7 @@ async def test_cold_start_offline_loads_native_wol_and_proxy(
         assert hass.states.get("sensor.test_nas_cpu_usage") is not None
         assert hass.states.get(buttons["shutdown"]).state != STATE_UNAVAILABLE
         assert hass.states.get(buttons["reboot"]).state != STATE_UNAVAILABLE
+        assert hass.states.get(buttons["wake"]).state == STATE_UNAVAILABLE
         send_packet.assert_called_once_with(MAC)
 
 
@@ -260,6 +320,7 @@ async def test_proxy_tracks_renamed_disabled_and_deleted_native_entity(
     """Stable registry associations survive rename and respect user disable/delete."""
     with patch("wakeonlan.send_magic_packet") as send_packet:
         native_entry, native_entity = await create_native_wol(hass)
+        mock_qnap_client.login.side_effect = QnapConnectionError("offline")
         buttons = await setup_qnap(hass, mock_config_entry, native_entry, native_entity)
         registry = er.async_get(hass)
         registry.async_update_entity(
@@ -317,6 +378,7 @@ async def test_omitting_associations_makes_proxy_unavailable(
     """Reversible opt-out changes only the QNAP association."""
     with patch("wakeonlan.send_magic_packet") as send_packet:
         native_entry, native_entity = await create_native_wol(hass)
+        mock_qnap_client.login.side_effect = QnapConnectionError("offline")
         buttons = await setup_qnap(hass, mock_config_entry, native_entry, native_entity)
         hass.config_entries.async_update_entry(
             mock_config_entry, options={CONF_WOL_ENTITIES: [], CONF_WOL_ENTRY_IDS: []}
@@ -417,6 +479,7 @@ async def test_proxy_delegates_once_to_each_selected_native_button(
     with patch("wakeonlan.send_magic_packet") as send_packet:
         first_entry, first_entity = await create_native_wol(hass)
         second_entry, second_entity = await create_native_wol(hass, second_mac)
+        mock_qnap_client.login.side_effect = QnapConnectionError("offline")
         buttons = await setup_qnap(hass, mock_config_entry, first_entry, first_entity)
         hass.config_entries.async_update_entry(
             mock_config_entry,
@@ -473,6 +536,7 @@ async def test_existing_sensors_keep_identity_across_offline_reload_and_recovery
         await hass.async_block_till_done()
         assert hass.states.get(cpu_entity_id).state != STATE_UNAVAILABLE
         assert registry.async_get(cpu_entity_id).id == cpu_registry_id
+        assert hass.states.get(buttons["wake"]).state == STATE_UNAVAILABLE
         assert {
             entity.id
             for entity in er.async_entries_for_config_entry(
@@ -528,6 +592,7 @@ async def test_proxy_uses_settings_changed_through_native_wol_options(
     """The native integration retains ownership of broadcast and port choices."""
     with patch("wakeonlan.send_magic_packet") as send_packet:
         native_entry, native_entity = await create_native_wol(hass)
+        mock_qnap_client.login.side_effect = QnapConnectionError("offline")
         buttons = await setup_qnap(hass, mock_config_entry, native_entry, native_entity)
         qnap_options = dict(mock_config_entry.options)
         result = await hass.config_entries.options.async_init(native_entry.entry_id)

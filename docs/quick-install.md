@@ -46,6 +46,31 @@ the first bounded QTS connection attempt. A wake trial, shutdown or reboot
 requires coordination with the owner. Record sending and observed recovery
 separately.
 
+## Power on availability and dashboard order
+
+Power on stays visible and becomes temporarily unavailable while the QNAP
+coordinator has confirmed QTS online. When QTS is unreachable, or monitoring
+has no data yet after startup, it is available if all associated native WOL
+targets are configured, enabled and loaded. Availability follows coordinator
+updates and native-target changes. An unreachable QTS endpoint leaves the
+physical power state unknown. Sending WOL requires an explicit press.
+
+The native device page in frontend `20261028.5` sorts controls by name.
+Entity creation order does not set their displayed order. For
+Encender → Apagar → Reiniciar, add an optional Entities card to a dashboard.
+Replace **all three example entity IDs** below with the existing QNAP buttons
+from your installation. The entities retain their names, IDs and configuration.
+
+```yaml
+type: entities
+title: Energía del NAS
+show_header_toggle: false
+entities:
+  - entity: button.example_nas_wake
+  - entity: button.example_nas_shutdown
+  - entity: button.example_nas_reboot
+```
+
 ## Roll back
 
 Restore the previous `qnap` folder from the private backup and restart Home
