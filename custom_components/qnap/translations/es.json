@@ -108,7 +108,7 @@
       "message": "Falló la solicitud de energía. Revisá la conexión QNAP y el estado del NAS antes de realizar otra acción. La solicitud no se reintentó."
     },
     "wake_unavailable": {
-      "message": "Revisá las asociaciones WOL. Una entidad está ausente, deshabilitada o sin cargar."
+      "message": "QTS está en línea o algún destino WOL asociado no está disponible. Revisá el estado del NAS y sus asociaciones WOL."
     },
     "wake_failed": {
       "message": "Falló la acción WOL. Algunos destinos pueden haber recibido el paquete. Revisá el NAS antes de volver a pulsar."

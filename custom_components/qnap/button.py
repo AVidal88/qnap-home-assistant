@@ -77,8 +77,9 @@ class QNAPWakeButton(ButtonEntity):
     _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(self, config_entry: QnapConfigEntry, unique_id: str) -> None:
-        """Keep the selected native entities independent of NAS monitoring."""
+        """Keep native targets usable before monitoring has any data."""
         self._config_entry = config_entry
+        self._coordinator = config_entry.runtime_data
         self._attr_unique_id = f"{unique_id}_wake"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, unique_id)}, name=config_entry.title
@@ -96,7 +97,9 @@ class QNAPWakeButton(ButtonEntity):
 
     @property
     def available(self) -> bool:
-        """Require the complete selected set of enabled native WOL targets."""
+        """Allow configured native targets while QTS is unconfirmed or offline."""
+        if self._coordinator.data is not None and self._coordinator.last_update_success:
+            return False
         targets = self._resolve_targets()
         if not targets:
             return False
@@ -123,7 +126,10 @@ class QNAPWakeButton(ButtonEntity):
         return True
 
     async def async_added_to_hass(self) -> None:
-        """Listen to native entity lifecycle and load configured targets."""
+        """Follow monitoring and native targets, including offline startup."""
+        self.async_on_remove(
+            self._coordinator.async_add_listener(self.async_write_ha_state)
+        )
         self.async_on_remove(
             self.hass.bus.async_listen(
                 er.EVENT_ENTITY_REGISTRY_UPDATED, self._async_registry_changed

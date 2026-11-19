@@ -155,7 +155,7 @@
       "message": "The power request failed. Check the QNAP connection and NAS status before taking another action. This request was not retried."
     },
     "wake_unavailable": {
-      "message": "Review the WOL associations. A target is missing, disabled or not loaded."
+      "message": "QTS is online or an associated WOL target is unavailable. Review the NAS status and WOL associations."
     },
     "wake_failed": {
       "message": "The native WOL action failed. Some targets may have received a packet. Check the NAS before pressing again."
