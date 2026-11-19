@@ -1,9 +1,9 @@
 # QNAP beta for HACS
 
-**Test release 3.3.0-beta.1** for Home Assistant 2025.3.0 or newer.
+**Test release 3.3.0-beta.2** for Home Assistant 2025.3.0 or newer.
 
 This fork distributes the assisted native Wake on LAN integration from
-`5ff53425b3c15dc565f782ef908433c5d2838bca` and the exact client candidate
+`1d43964ac8b3464833022281cc0b195b58043c8e` and the exact client candidate
 `b2f467a7dc5899d748d901c1d7549436758429d6` in `_vendor/qnap_client`.
 The library and integration contribution branches keep their own history.
 
@@ -13,7 +13,7 @@ The library and integration contribution branches keep their own history.
 2. In **HACS → menu → Custom repositories**, add
    `https://github.com/AVidal88/qnap-home-assistant` as **Integration**.
 3. Open **QNAP (AVidal88 beta)** and **Download / Redownload**. Expand
-   **Need a different version?**, choose a release and select **3.3.0-beta.1**
+   **Need a different version?**, choose a release and select **3.3.0-beta.2**
    before confirming. Some HACS versions also offer **Show beta versions**.
    If the initial version field shows a commit hash, change it to this beta.
 4. Restart **Home Assistant**. Keep an existing QNAP configuration entry, or add
@@ -47,8 +47,8 @@ Use **Update information** in the fork's HACS menu, then **Download / Redownload
 and select the next beta. Keep prereleases visible while following this channel.
 Restart Home Assistant after changing the installed version.
 
-For rollback within this fork, redownload an earlier known-good release and
-restart HA. This initial beta has no earlier fork release. To return to upstream,
+For rollback within this fork, select **3.3.0-beta.1** in Download / Redownload
+and restart HA. To return to upstream,
 remove the fork through HACS, download `disforw/qnap`, and restart HA. The normal
 HA backup remains another recovery option. Keep the QNAP configuration entry.
 Native WOL entries created with consent retain their settings and can be managed
@@ -63,19 +63,34 @@ associations and reversible per-NAS suppression of suggestions.
 
 Power on delegates to the selected native WOL buttons. Saved associations also
 load while QTS is unreachable, following the first bounded connection attempt.
+It stays visible and becomes temporarily unavailable while monitoring confirms
+QTS online. When QTS is unreachable or monitoring has no data yet, its
+availability depends on the associated native WOL targets. An unreachable QTS
+endpoint leaves the physical power state unknown. State changes update
+availability, and WOL is sent only after an explicit press.
 Shutdown and Reboot use the candidate client's public methods, one request per
 press. CGI acceptance and the physical result are separate observations.
 Coordinate any real wake, shutdown or reboot with the owner. Setup sends no
 magic packet or power request.
 
+The native device page in frontend `20261028.5` sorts controls by name.
+An optional [Entities card example](docs/quick-install.md#power-on-availability-and-dashboard-order)
+provides Encender → Apagar → Reiniciar, using the existing entities.
+
+After a firmware update, the owner reported a native QTS shutdown that remained
+off, successful recovery through this integration's Power on button and no new
+improper-shutdown warning. The exact new firmware version is unconfirmed.
+The recorded assessment is that the problem did not reproduce after updating
+firmware. Shutdown from HA with that firmware remains for the next coordinated
+trial. The earlier incidents retain their evidence and their cause is unknown.
+
 ## Distribution boundary
 
-This beta uses the previously prepared development bundle. Distribution changes
-are the flattened asset, version, fork links and HACS metadata. The client source
-and its MIT license are preserved. `SOURCE.json` records source revisions and
-fingerprints. The published beta asset declares `xmltodict==1.0.4`.
-The distribution manifest and packaging template use `xmltodict>=1.0.4`
-so the dependency can follow Home Assistant updates. HA provides aiohttp.
+This beta includes the coordinator-based Power on availability change and the
+same privately included client source. `SOURCE.json` records source revisions
+and fingerprints. The flat package includes integration, SDK and icon licenses.
+The manifest and packaging template use `xmltodict>=1.0.4` so the dependency can
+follow Home Assistant updates. HA provides aiohttp.
 
 Hassfest reports the known warning `Domain collides with built-in core integration`.
 This fork retains the `qnap` domain to manage the existing QNAP entry and entities.
@@ -103,6 +118,5 @@ The included Python SDK retains its own original
 The generic NAS icon has separate Apache-2.0 terms and source attribution in
 [the brand notice](custom_components/qnap/brand/NOTICE.txt).
 
-The publication metadata corrections after `f66000e` apply to the distribution
-branch. The existing `3.3.0-beta.1` tag and release assets retain their original
-contents. Future packages can include the local brand assets from this branch.
+The original `3.3.0-beta.1` tag and release assets preserve that trial's package.
+This beta includes the subsequent publication metadata and local brand assets.

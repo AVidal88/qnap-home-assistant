@@ -1,10 +1,9 @@
 {
   "artifact": "QNAP HACS beta",
-  "version": "3.3.0-beta.1",
-  "integration_source_revision": "5ff53425b3c15dc565f782ef908433c5d2838bca",
+  "version": "3.3.0-beta.2",
+  "integration_source_revision": "1d43964ac8b3464833022281cc0b195b58043c8e",
   "client_revision": "b2f467a7dc5899d748d901c1d7549436758429d6",
   "client_namespace": "custom_components.qnap._vendor.qnap_client",
-  "source_bundle_sha256": "245ec37b6cd149506c65e97e89e65464f00db219fe4bbc3dd0e990b7c63ea708",
   "client_source_sha256": {
     "qnap_client/__init__.py": "26267c80dc9e4862c13a2c21ba05db05bb087db26cfa1edd6b1fc0f4fafe9bf3",
     "qnap_client/client.py": "f859c066d77b3bcbebba369240fad5c0c3bf81cfb670940718adb5a340e7471b",
@@ -14,6 +13,7 @@
     "LICENSE": "77b5a9adf7183fd86cb687df012114743fa90bff3fdef6040c2c02376ec6b806"
   },
   "component_files_sha256": {
+    "LICENSE": "4dc04a667c0a86e1b72d30016fd11bd05978078a9ae9796e3d116ed19c8bc1ff",
     "__init__.py": "4990b22e6c4efbc196f4c33ef23440a612943bf4a00af4686326bcd9e484d7aa",
     "_vendor/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "_vendor/qnap_client/LICENSE": "77b5a9adf7183fd86cb687df012114743fa90bff3fdef6040c2c02376ec6b806",
@@ -28,16 +28,16 @@
     "brand/icon.png": "cbdc5ff32e3e576dcca659945f97b05fda9aa93751d49138bbf9accd9ec6af3a",
     "brand/icon@2x.png": "73964f43a8f9b9a1c6c7706fa404939df096ebd4384c8715ed5fe18502ef601c",
     "brand/nas.svg": "6a8e189514c011b6cbfb8f717978a6103de621992465b30b257c9e2109e90257",
-    "button.py": "a92086750cb53175b23fd5d650ae22d6ad377e19fb9066918db5a11474f09b53",
+    "button.py": "dd7b6500de88024d9513824da6616839880031bd8f3ec940bb9a6cc7fdfc8b59",
     "config_flow.py": "6cde7c8f3bb492ff01b1776d246987fd7f445ce1734ca5948ff8f16646cf2081",
     "const.py": "a4efe254beaaf7e85c0123671485c2445b05bdefde944722a0cf4d7ded5121ae",
     "coordinator.py": "8c7561e35ab88499cf01f2044436523efc628bc4a3618524634bd644c5f989f4",
-    "manifest.json": "4de5dbac7a5bd41683a456bed6fa51d1bac1a9350afdcaae3f9decde572966c1",
+    "manifest.json": "74971a39497c51cc52c6a7957328eadbfef8486f2d4a2b98b606a88904599c17",
     "sensor.py": "cfc7c7d3f4abc3512eefbca89a730269a0e3818e9d81d290f7e8866ea5a1080f",
-    "strings.json": "65e89d1bd23cc3eaa88ccb9e6d614fec283ee0f167de82fd1c4985ffc893cafc",
+    "strings.json": "051d4078a48a8f2e34ed28bd85e5857382569bc4a8392369d14aef459992b0ee",
     "switch.py": "05f0b3b026df5ae44bc5cf3094421105bdf32699b23672f6d7441405a6dc7f9a",
-    "translations/en.json": "240f588eb849c65a78d82cd17929eba0180b57e1989f2bd0531ae2cf38783974",
-    "translations/es.json": "4c6be6379c739b6f3887270993c56aba7a48b6f97acce155027d58a8c1900b72",
+    "translations/en.json": "7fbabd5c477d7b8f501ee058c7b6349aa98a19ea7175ac2df0bf97bb6aaa22c6",
+    "translations/es.json": "48d142ec0c55bafa32882a7e1808149e8d7012b2365ccd32f82d5fd4e73d611e",
     "update.py": "de4ea83b3fb41de232187ea2b29272d1f057fcd6a2ced8e51844fc3015bcd406",
     "wol.py": "83e193b49f89d273c52798b82bebfd9550e6f3cc1fea5c25479c825cf1fcc70c",
     "wol_flow.py": "59de8c148ba1bcfdf2d90d6f1cea638624a4ad84159fccf7b37d25274f450f94"
@@ -48,7 +48,9 @@
     "fork documentation and issue links",
     "release metadata and provenance",
     "post-release HACS publication metadata and licensed local brand assets",
-    "xmltodict minimum version required by Hassfest"
+    "xmltodict minimum version required by Hassfest",
+    "Power on availability follows QTS coordinator notifications",
+    "integration license included in the flat component package"
   ],
-  "published_release_revision": "f66000e9027195c8385f026481fc997c83d1609e"
+  "previous_release_revision": "f66000e9027195c8385f026481fc997c83d1609e"
 }
