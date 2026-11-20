@@ -81,8 +81,11 @@ After a firmware update, the owner reported a native QTS shutdown that remained
 off, successful recovery through this integration's Power on button and no new
 improper-shutdown warning. The exact new firmware version is unconfirmed.
 The recorded assessment is that the problem did not reproduce after updating
-firmware. Shutdown from HA with that firmware remains for the next coordinated
-trial. The earlier incidents retain their evidence and their cause is unknown.
+firmware. In the subsequent physical trial of `3.3.0-beta.2`, the owner confirmed
+that Shutdown from HA left the NAS off, Wake from HA booted it normally, and
+button availability changed as expected. Reboot from the HA button awaits its
+own confirmation. The earlier incidents retain their evidence and their cause
+is unknown.
 
 ## Distribution boundary
 

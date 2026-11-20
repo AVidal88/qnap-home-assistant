@@ -55,21 +55,51 @@ targets are configured, enabled and loaded. Availability follows coordinator
 updates and native-target changes. An unreachable QTS endpoint leaves the
 physical power state unknown. Sending WOL requires an explicit press.
 
-The native device page in frontend `20261028.5` sorts controls by name.
-Entity creation order does not set their displayed order. For
-Encender → Apagar → Reiniciar, add an optional Entities card to a dashboard.
-Replace **all three example entity IDs** below with the existing QNAP buttons
-from your installation. The entities retain their names, IDs and configuration.
+The native device page in frontend `20261028.5` sorts controls by name and
+constructs its rows without a `confirmation` setting. A dashboard Entities
+card can configure confirmation on its own rows and provides the order
+Encender → Apagar → Reiniciar. These confirmations apply to this dashboard
+card. The automatic device page exposes its own directly acting buttons.
+
+Replace **both `button.reemplazar_id_*` markers** with the existing QNAP
+Power on and Reboot entity IDs. The Shutdown ID below was confirmed for the
+coordinated installation. Adapt it too when using another installation.
+Row names are display labels. Entity identity, configuration and availability
+continue to come from the existing entities.
 
 ```yaml
 type: entities
 title: Energía del NAS
 show_header_toggle: false
 entities:
-  - entity: button.example_nas_wake
-  - entity: button.example_nas_shutdown
-  - entity: button.example_nas_reboot
+  - entity: button.reemplazar_id_encender # Replace with the existing QNAP Power on ID
+    name: Encender
+  - entity: button.garaje_homenas_apagar
+    name: Apagar
+    confirmation:
+      text: "¿Querés apagar el NAS?"
+      confirm_text: Confirmar
+      dismiss_text: Cancelar
+  - entity: button.reemplazar_id_reiniciar # Replace with the existing QNAP Reboot ID
+    name: Reiniciar
+    confirmation:
+      text: "¿Querés reiniciar el NAS?"
+      confirm_text: Confirmar
+      dismiss_text: Cancelar
 ```
+
+`confirmation` sits alongside `entity` in each normal action row. Power on
+acts directly. **Cancelar** closes the dialog without pressing the entity.
+**Confirmar** makes one press on the row's existing button. Rows keep the
+entity's current availability, including temporary unavailability.
+
+To add the card, open an editable dashboard, choose **Edit dashboard → Add
+card → Manual**, paste the YAML, replace the two markers and save. Find the
+existing IDs in **Settings → Devices & services → Entities**. Configuration
+and saving the card send no power request.
+
+The row's confirmation and availability behavior is implemented in
+[the frontend button row](https://github.com/home-assistant/frontend/blob/20261028.5/src/panels/lovelace/entity-rows/hui-button-entity-row.ts#L67).
 
 ## Roll back
 
