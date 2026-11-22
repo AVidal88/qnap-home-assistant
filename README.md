@@ -87,6 +87,15 @@ button availability changed as expected. Reboot from the HA button awaits its
 own confirmation. The earlier incidents retain their evidence and their cause
 is unknown.
 
+On 2026-11-22, the owner reported an unexpected automatic restart and the
+improper-shutdown warning after using HA Shutdown, while not actively using
+the NAS. QuLog showed shutdown starting at 18:19:10, the warning at 18:24:24
+and system startup at 18:24:25. These are displayed log times, with the time
+zone unconfirmed for this capture. The owner confirmed QTS **5.2.11.3683**
+for this occurrence.
+The recurrence retains its own evidence alongside the positive trial above.
+The shutdown incident remains unresolved.
+
 ## Distribution boundary
 
 This beta includes the coordinator-based Power on availability change and the
